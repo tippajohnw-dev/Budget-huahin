@@ -4,6 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
   <title>หารกันเอง · Trip Expense Splitter</title>
+  <meta name="theme-color" content="#06C755" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="หารกันเอง" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Mali:wght@500;600;700&display=swap" rel="stylesheet">
@@ -682,7 +688,7 @@
       <div style="font-size:13px"><span class="conn-dot ok" id="conn-dot"></span><span id="conn-text">เชื่อมต่อกับ Firebase แล้ว</span></div>
       <div class="divider"></div>
       <button class="btn ghost full" id="leave-trip">ออกจาก Trip นี้</button>
-      <button class="btn ghost full" id="reset-all" style="margin-top:8px;color:var(--bad)">รีเซ็ต Firebase config</button>
+      <button class="btn ghost full" id="reset-all" style="margin-top:8px;color:var(--bad)">ล้างค่าในเครื่อง</button>
     </div>
 
     <div class="card">
@@ -810,11 +816,44 @@ document.addEventListener('click', e=>{
 });
 
 /* --------------- Firebase Config Setup --------------- */
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBF3M92X16QRvSJ6lAqgPkFjfdBmsMZ564",
+  authDomain: "huahin-expend.firebaseapp.com",
+  databaseURL: "https://huahin-expend-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "huahin-expend",
+  storageBucket: "huahin-expend.firebasestorage.app",
+  messagingSenderId: "1037315108077",
+  appId: "1:1037315108077:web:09c21d2b75df851fed70e4",
+  measurementId: "G-WJFGW2LQ8X"
+};
+
 function loadFbConfig(){
-  try { return JSON.parse(localStorage.getItem(LS.fb) || 'null'); } catch { return null; }
+  // ใช้ config ที่ฝังไว้เป็นค่าเริ่มต้น เพื่อไม่ต้องถามผู้ใช้อีก
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS.fb) || 'null');
+    return saved || DEFAULT_FIREBASE_CONFIG;
+  } catch {
+    return DEFAULT_FIREBASE_CONFIG;
+  }
 }
-function saveFbConfig(cfg){ localStorage.setItem(LS.fb, JSON.stringify(cfg)); }
+function saveFbConfig(cfg){ localStorage.setItem(LS.fb, JSON.stringify(cfg || DEFAULT_FIREBASE_CONFIG)); }
 function clearFbConfig(){ localStorage.removeItem(LS.fb); }
+
+function canWrite(action, limit=20, windowMs=60*1000){
+  const key = 'haargun_write_guard_' + action;
+  const now = Date.now();
+  let arr = [];
+  try { arr = JSON.parse(localStorage.getItem(key) || '[]'); } catch {}
+  arr = arr.filter(t => now - t < windowMs);
+  if (arr.length >= limit) return false;
+  arr.push(now);
+  localStorage.setItem(key, JSON.stringify(arr));
+  return true;
+}
+
+function sanitizeText(s, max=80){
+  return String(s || '').trim().slice(0, max);
+}
 
 function initFirebase(cfg){
   if (app) return true;
@@ -884,7 +923,7 @@ $('#fb-save').addEventListener('click', async ()=>{
 
 $('#reset-fb').addEventListener('click', e=>{
   e.preventDefault();
-  if (confirm('ล้าง Firebase config? คุณจะต้องวางใหม่อีกครั้ง')){
+  if (confirm('ล้างค่าในเครื่องนี้? ข้อมูลบน Cloud ยังอยู่')){
     clearFbConfig();
     location.reload();
   }
@@ -898,8 +937,9 @@ function makeTripCode(name){
 }
 
 $('#create-trip').addEventListener('click', async ()=>{
-  const name = $('#new-trip-name').value.trim();
-  const userName = $('#new-trip-user').value.trim();
+  if (!canWrite('create_trip', 3, 10*60*1000)) return toast('สร้าง Trip ถี่เกินไป ลองใหม่อีกครั้ง');
+  const name = sanitizeText($('#new-trip-name').value, 60);
+  const userName = sanitizeText($('#new-trip-user').value, 40);
   if (!name) return toast('ใส่ชื่อ Trip ก่อน');
   if (!userName) return toast('ใส่ชื่อของคุณก่อน');
   const code = makeTripCode(name);
@@ -915,8 +955,9 @@ $('#create-trip').addEventListener('click', async ()=>{
 });
 
 $('#join-trip').addEventListener('click', async ()=>{
-  const code = ($('#join-trip-code').value || '').trim().toUpperCase();
-  const userName = $('#join-trip-user').value.trim();
+  if (!canWrite('join_trip', 10, 60*1000)) return toast('เข้าร่วมถี่เกินไป ลองใหม่อีกครั้ง');
+  const code = sanitizeText($('#join-trip-code').value, 20).toUpperCase();
+  const userName = sanitizeText($('#join-trip-user').value, 40);
   if (!code) return toast('ใส่รหัส Trip ก่อน');
   if (!userName) return toast('ใส่ชื่อของคุณก่อน');
   const snap = await db.ref('trips/'+code).get();
@@ -1047,7 +1088,8 @@ function renderMembers(){
 }
 
 $('#add-member').addEventListener('click', async ()=>{
-  const name = $('#new-member-name').value.trim();
+  if (!canWrite('add_member', 15, 60*1000)) return toast('เพิ่มสมาชิกถี่เกินไป ลองใหม่อีกครั้ง');
+  const name = sanitizeText($('#new-member-name').value, 40);
   if (!name) return;
   if (state.members.some(m=>m.name.toLowerCase()===name.toLowerCase())) return toast('มีชื่อซ้ำ');
   const id = uuid();
@@ -1193,7 +1235,8 @@ $('#open-add').addEventListener('click', ()=>{
 });
 
 $('#ex-save').addEventListener('click', async ()=>{
-  const title = $('#ex-title').value.trim();
+  if (!canWrite('save_expense', 30, 60*1000)) return toast('บันทึกรายการถี่เกินไป ลองใหม่อีกครั้ง');
+  const title = sanitizeText($('#ex-title').value, 80);
   const amount = parseFloat($('#ex-amount').value)||0;
   const category = $('#ex-category').value;
   const date = $('#ex-date').value || todayISO();
@@ -1203,6 +1246,7 @@ $('#ex-save').addEventListener('click', async ()=>{
 
   if (!title) return toast('ใส่ชื่อรายการ');
   if (!(amount>0)) return toast('ใส่จำนวนเงิน');
+  if (amount > 1000000) return toast('จำนวนเงินสูงเกินไป');
   if (!payer) return toast('เลือกคนจ่าย');
   if (!beneficiaries.length) return toast('เลือกคนหารอย่างน้อย 1 คน');
 
@@ -1458,7 +1502,7 @@ $('#leave-trip').addEventListener('click', ()=>{
   location.reload();
 });
 $('#reset-all').addEventListener('click', ()=>{
-  if (!confirm('ลบ Firebase config ทั้งหมด? คุณจะต้องตั้งค่าใหม่')) return;
+  if (!confirm('ล้างค่าในเครื่องนี้? ข้อมูลบน Cloud ยังอยู่')) return;
   clearFbConfig();
   clearLocalTrip();
   history.replaceState(null,'','#');
@@ -1474,7 +1518,7 @@ function escapeHtml(s){
 async function bootstrap(){
   const cfg = loadFbConfig();
   if (!cfg){
-    showScreen('screen-fb-setup');
+    showScreen('screen-trip');
     return;
   }
   try {
@@ -1541,6 +1585,12 @@ async function bootstrap(){
 }
 
 bootstrap();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Service worker registration failed', err));
+  });
+}
 </script>
 </body>
 </html>

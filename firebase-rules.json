@@ -1,0 +1,29 @@
+{
+  "rules": {
+    "trips": {
+      "$tripId": {
+        ".read": true,
+        ".write": "newData.exists() && $tripId.matches(/^[A-Z0-9ก-๙]{3,20}$/)",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "members": {
+          "$memberId": {
+            ".validate": "newData.hasChildren(['id','name']) && newData.child('id').val() == $memberId && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 40"
+          }
+        },
+        "expenses": {
+          "$expenseId": {
+            ".validate": "newData.hasChildren(['id','title','amount','payer','beneficiaries','category','date','createdAt']) && newData.child('id').val() == $expenseId && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 80 && newData.child('amount').isNumber() && newData.child('amount').val() > 0 && newData.child('amount').val() <= 1000000 && newData.child('payer').isString() && newData.child('category').isString() && newData.child('category').val().length <= 30 && newData.child('date').isString() && newData.child('date').val().matches(/^\\d{4}-\\d{2}-\\d{2}$/) && newData.child('createdAt').isNumber()"
+          }
+        },
+        "$other": {
+          ".validate": "$other == 'name' || $other == 'createdAt' || $other == 'members' || $other == 'expenses'"
+        }
+      }
+    }
+  }
+}
