@@ -1,0 +1,1546 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+  <title>หารกันเอง · Trip Expense Splitter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Mali:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      /* LINE-inspired palette */
+      --line:#06C755;
+      --line-dark:#05A648;
+      --line-darker:#048A3B;
+      --line-soft:#E6F9EE;
+      --line-tint:#F2FBF5;
+
+      --bg:#F2FBF5;
+      --bg-2:#E8F5EE;
+      --surface:#ffffff;
+      --surface-2:#F4F8F5;
+      --border:#E2EDE6;
+      --border-strong:#CFE3D6;
+
+      --ink:#1F2D24;
+      --ink-2:#5C6E63;
+      --ink-3:#94A89C;
+
+      --good:#06C755;
+      --bad:#F25555;
+      --warn:#FFB400;
+      --info:#3FA9F5;
+
+      /* category colors */
+      --c-food:#FF8C42;
+      --c-stay:#3FA9F5;
+      --c-travel:#9C73E8;
+      --c-fun:#FF6FA1;
+      --c-shop:#FFB400;
+      --c-snack:#1ECBE1;
+      --c-other:#94A89C;
+
+      --radius:18px;
+      --radius-lg:22px;
+      --radius-sm:12px;
+      --shadow-sm:0 1px 2px rgba(6,199,85,.06), 0 2px 8px rgba(31,45,36,.04);
+      --shadow:0 4px 14px rgba(6,199,85,.08), 0 2px 6px rgba(31,45,36,.04);
+      --shadow-lg:0 12px 32px rgba(6,199,85,.18), 0 4px 12px rgba(31,45,36,.06);
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;padding:0;color:var(--ink);font-family:'IBM Plex Sans Thai',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.55;}
+    body{
+      min-height:100vh;min-height:100dvh;
+      background:
+        radial-gradient(1100px 600px at 100% -10%, #D8F3E2 0%, transparent 60%),
+        radial-gradient(900px 500px at -10% 100%, #E0F7E9 0%, transparent 55%),
+        var(--bg);
+      background-attachment:fixed;
+    }
+    button{font-family:inherit;cursor:pointer;border:0;background:transparent;color:inherit}
+    input,select,textarea{font-family:inherit;font-size:15px}
+    a{color:var(--line-dark)}
+
+    /* Layout */
+    .app{max-width:520px;margin:0 auto;padding:0 16px 130px;position:relative}
+    .topbar{
+      position:sticky;top:0;z-index:10;
+      background:rgba(242,251,245,.82);
+      backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px);
+      padding:14px 0 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;
+      border-bottom:1px solid transparent;transition:border-color .2s
+    }
+    .topbar.scrolled{border-bottom-color:var(--border)}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;font-family:'Mali',sans-serif;color:var(--ink)}
+    .brand-dot{
+      width:28px;height:28px;border-radius:50%;
+      background:linear-gradient(135deg, #06C755 0%, #04A847 100%);
+      display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;
+      box-shadow:0 4px 10px rgba(6,199,85,.35)
+    }
+    .trip-chip{
+      font-size:12px;color:var(--line-darker);font-weight:600;
+      background:var(--line-soft);padding:6px 12px;border-radius:999px;
+      border:1px solid #C8EBD6;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+    }
+    .icon-btn{
+      width:38px;height:38px;border-radius:12px;
+      display:inline-flex;align-items:center;justify-content:center;color:var(--ink-2);
+      transition:all .18s;background:var(--surface);border:1px solid var(--border)
+    }
+    .icon-btn:hover{background:var(--line-soft);color:var(--line-dark);border-color:#C8EBD6;transform:translateY(-1px)}
+    .icon-btn:active{transform:scale(.95)}
+
+    /* Tabs */
+    .tabs{
+      display:flex;gap:4px;background:var(--surface);border-radius:16px;padding:5px;margin:10px 0 16px;
+      border:1px solid var(--border);box-shadow:var(--shadow-sm)
+    }
+    .tab{
+      flex:1;text-align:center;padding:10px 6px;border-radius:12px;font-size:13px;
+      color:var(--ink-2);font-weight:600;transition:all .2s
+    }
+    .tab.active{
+      background:linear-gradient(135deg, #06C755 0%, #04A847 100%);
+      color:#fff;box-shadow:0 4px 12px rgba(6,199,85,.32)
+    }
+
+    /* Cards */
+    .card{
+      background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+      padding:18px;box-shadow:var(--shadow-sm);transition:box-shadow .2s
+    }
+    .card + .card{margin-top:12px}
+    .card h3{
+      margin:0 0 14px;font-size:13px;font-weight:700;color:var(--ink);
+      letter-spacing:.01em;display:flex;align-items:center;gap:8px
+    }
+    .card h3::before{
+      content:'';width:4px;height:14px;border-radius:2px;
+      background:linear-gradient(180deg,#06C755,#04A847)
+    }
+
+    /* Forms */
+    .field{margin-bottom:14px}
+    .field label{display:block;font-size:13px;color:var(--ink);margin-bottom:7px;font-weight:600}
+    .field input, .field select, .field textarea{
+      width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:14px;
+      background:var(--surface);color:var(--ink);outline:none;
+      transition:border-color .18s, box-shadow .18s, background .18s
+    }
+    .field input:hover, .field select:hover, .field textarea:hover{background:#FCFEFD}
+    .field input:focus, .field select:focus, .field textarea:focus{
+      border-color:var(--line);
+      box-shadow:0 0 0 4px rgba(6,199,85,.12);
+      background:#fff
+    }
+    .field .hint{font-size:12px;color:var(--ink-3);margin-top:5px}
+    .row{display:flex;gap:10px}
+    .row > *{flex:1;min-width:0}
+
+    /* Buttons */
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:13px 20px;border-radius:14px;font-weight:600;font-size:14px;
+      transition:all .18s;white-space:nowrap;letter-spacing:.01em
+    }
+    .btn.primary{
+      background:linear-gradient(135deg, #06C755 0%, #04A847 100%);
+      color:#fff;box-shadow:0 4px 14px rgba(6,199,85,.32)
+    }
+    .btn.primary:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(6,199,85,.42)}
+    .btn.primary:active{transform:scale(.98)}
+    .btn.ghost{background:var(--surface);color:var(--ink);border:1.5px solid var(--border)}
+    .btn.ghost:hover{background:var(--line-soft);border-color:var(--line);color:var(--line-dark)}
+    .btn.danger{background:#FFF0F0;color:var(--bad);border:1.5px solid #FFD6D6}
+    .btn.danger:hover{background:#FFE0E0}
+    .btn.full{width:100%}
+    .btn.sm{padding:8px 14px;font-size:13px;border-radius:10px}
+    .btn[disabled]{opacity:.5;cursor:not-allowed}
+
+    /* People chips */
+    .people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:10px}
+    .person-chip{
+      border:1.5px solid var(--border);border-radius:16px;padding:12px 6px;text-align:center;
+      background:var(--surface);color:var(--ink-2);font-size:12.5px;cursor:pointer;font-weight:500;
+      transition:all .2s;user-select:none;display:flex;flex-direction:column;gap:7px;align-items:center
+    }
+    .person-chip:hover{border-color:#C8EBD6;background:var(--line-tint);transform:translateY(-1px)}
+    .person-chip .avatar{
+      width:36px;height:36px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:700;color:#fff;font-size:13px;
+      box-shadow:0 2px 6px rgba(0,0,0,.1)
+    }
+    .person-chip.selected{
+      background:linear-gradient(135deg,#06C755,#04A847);
+      color:#fff;border-color:transparent;
+      box-shadow:0 4px 14px rgba(6,199,85,.35)
+    }
+    .person-chip.selected .avatar{background:rgba(255,255,255,.22)!important;color:#fff}
+
+    .split-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--border)}
+    .split-row:last-child{border-bottom:0}
+    .split-row .name{flex:1;display:flex;align-items:center;gap:10px;font-size:14px}
+    .split-row .name .avatar{
+      width:30px;height:30px;border-radius:50%;color:#fff;
+      display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px
+    }
+    .split-row input{
+      width:110px;text-align:right;padding:8px 12px;
+      border:1.5px solid var(--border);border-radius:10px;background:var(--surface);font-weight:600
+    }
+
+    /* Dashboard tiles */
+    .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .stat{
+      background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;
+      position:relative;overflow:hidden;transition:transform .2s
+    }
+    .stat:hover{transform:translateY(-2px)}
+    .stat .label{font-size:12px;color:var(--ink-2);font-weight:600;display:flex;align-items:center;gap:5px}
+    .stat .val{font-size:24px;font-weight:700;margin-top:6px;letter-spacing:-.02em;font-family:'Mali',sans-serif}
+    .stat .val.good{color:var(--good)}
+    .stat .val.bad{color:var(--bad)}
+    .stat .sub{font-size:11.5px;color:var(--ink-3);margin-top:3px}
+
+    .stat.hero{
+      background:linear-gradient(135deg, #06C755 0%, #04A847 100%);
+      color:#fff;border-color:transparent;
+      box-shadow:0 8px 24px rgba(6,199,85,.35)
+    }
+    .stat.hero .label, .stat.hero .sub{color:rgba(255,255,255,.85)}
+    .stat.hero .val{color:#fff}
+    .stat.hero.bad{background:linear-gradient(135deg, #F25555 0%, #D63A3A 100%);box-shadow:0 8px 24px rgba(242,85,85,.32)}
+
+    /* Expense list */
+    .expense{
+      display:flex;gap:12px;padding:14px 4px;border-bottom:1px dashed var(--border);
+      cursor:pointer;border-radius:12px;transition:background .15s
+    }
+    .expense:last-child{border-bottom:0}
+    .expense:hover{background:var(--line-tint)}
+    .expense .icon{
+      width:44px;height:44px;border-radius:14px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:20px;flex-shrink:0;color:#fff;
+      box-shadow:0 3px 8px rgba(0,0,0,.08)
+    }
+    .expense .body{flex:1;min-width:0}
+    .expense .title{font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .expense .meta{font-size:12px;color:var(--ink-3);margin-top:3px}
+    .expense .amt{text-align:right;font-weight:700;font-size:15px;flex-shrink:0;font-family:'Mali',sans-serif}
+    .expense .amt .by{font-size:11px;color:var(--ink-3);font-weight:500;margin-top:2px;font-family:'IBM Plex Sans Thai',sans-serif}
+
+    /* Category color helpers */
+    .cat-food   {background:linear-gradient(135deg,#FF8C42,#FF6B1F)}
+    .cat-stay   {background:linear-gradient(135deg,#3FA9F5,#1E8FE0)}
+    .cat-travel {background:linear-gradient(135deg,#9C73E8,#7C4DD8)}
+    .cat-fun    {background:linear-gradient(135deg,#FF6FA1,#F0488A)}
+    .cat-shop   {background:linear-gradient(135deg,#FFB400,#F09000)}
+    .cat-snack  {background:linear-gradient(135deg,#1ECBE1,#06A5BA)}
+    .cat-other  {background:linear-gradient(135deg,#94A89C,#6F857A)}
+
+    /* Settlement */
+    .settle-row{
+      display:flex;align-items:center;gap:10px;padding:14px 4px;
+      border-bottom:1px dashed var(--border);font-size:14px
+    }
+    .settle-row:last-child{border-bottom:0}
+    .settle-row .arrow{
+      color:var(--line);font-weight:700;font-size:18px;
+      animation:arrowMove 1.6s ease-in-out infinite
+    }
+    @keyframes arrowMove{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+    .settle-row .amt{margin-left:auto;font-weight:700;color:var(--line-dark);font-family:'Mali',sans-serif}
+
+    /* Avatar circles (used in settle/balance) */
+    .av{
+      width:34px;height:34px;border-radius:50%;color:#fff;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:700;font-size:13px;flex-shrink:0;
+      box-shadow:0 2px 6px rgba(0,0,0,.1)
+    }
+    .av.sm{width:28px;height:28px;font-size:11px}
+    .av.lg{width:40px;height:40px;font-size:14px}
+
+    /* FAB */
+    .fab{
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      background:linear-gradient(135deg, #06C755 0%, #04A847 100%);
+      color:#fff;padding:15px 26px;border-radius:999px;font-weight:700;
+      display:inline-flex;align-items:center;gap:9px;font-size:15px;
+      box-shadow:0 10px 30px rgba(6,199,85,.45), 0 4px 10px rgba(0,0,0,.1);
+      z-index:20;font-family:'Mali',sans-serif;
+      transition:all .2s
+    }
+    .fab:hover{transform:translateX(-50%) translateY(-3px);box-shadow:0 14px 36px rgba(6,199,85,.55)}
+    .fab:active{transform:translateX(-50%) scale(.96)}
+
+    /* Modal */
+    .modal-bg{
+      position:fixed;inset:0;background:rgba(31,45,36,.45);backdrop-filter:blur(4px);
+      z-index:50;display:none;align-items:flex-end;justify-content:center
+    }
+    .modal-bg.show{display:flex;animation:fadeIn .2s}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    .modal{
+      background:var(--surface);width:100%;max-width:520px;max-height:92vh;overflow-y:auto;
+      border-radius:24px 24px 0 0;padding:22px;animation:slideUp .3s cubic-bezier(.2,.9,.3,1.2)
+    }
+    @media(min-width:520px){.modal-bg{align-items:center}.modal{border-radius:24px;max-height:88vh}}
+    @keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+    .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .modal-head h2{margin:0;font-size:19px;font-weight:700;font-family:'Mali',sans-serif;color:var(--ink)}
+
+    /* Empty */
+    .empty{text-align:center;padding:32px 20px;color:var(--ink-3)}
+    .empty .ic{font-size:46px;margin-bottom:10px;display:block;animation:bob 2.4s ease-in-out infinite}
+    @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+    .empty .txt{font-size:13.5px;color:var(--ink-2);font-weight:500}
+
+    /* Welcome screens */
+    .welcome{
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      min-height:100vh;min-height:100dvh;padding:32px 20px;text-align:center
+    }
+    .welcome .logo-emoji{
+      font-size:64px;margin-bottom:8px;
+      animation:bob 2.6s ease-in-out infinite
+    }
+    .welcome h1{
+      font-size:30px;margin:0 0 6px;font-weight:700;letter-spacing:-.02em;
+      font-family:'Mali',sans-serif;
+      background:linear-gradient(135deg, #06C755 0%, #04A847 100%);
+      -webkit-background-clip:text;background-clip:text;color:transparent
+    }
+    .welcome .sub{color:var(--ink-2);font-size:14.5px;margin-bottom:28px;max-width:340px;line-height:1.6}
+    .welcome .card{width:100%;max-width:380px;text-align:left;box-shadow:var(--shadow)}
+
+    /* Toast */
+    .toast{
+      position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(10px);
+      background:var(--ink);color:#fff;padding:12px 20px;border-radius:999px;font-size:13.5px;
+      font-weight:600;z-index:100;opacity:0;pointer-events:none;
+      transition:opacity .25s, transform .25s;
+      box-shadow:0 10px 30px rgba(0,0,0,.25)
+    }
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+    /* Misc */
+    .badge{
+      display:inline-block;background:var(--line-soft);border:1px solid #C8EBD6;
+      padding:3px 9px;border-radius:999px;font-size:11px;color:var(--line-darker);font-weight:600
+    }
+    .divider{height:1px;background:var(--border);margin:14px 0}
+    .muted{color:var(--ink-3)}
+    .small{font-size:12px}
+    .right{text-align:right}
+    .nowrap{white-space:nowrap}
+    .hidden{display:none !important}
+
+    .seg{
+      display:inline-flex;background:var(--surface-2);border:1.5px solid var(--border);
+      border-radius:14px;padding:4px;margin-bottom:10px
+    }
+    .seg button{padding:8px 16px;font-size:13px;border-radius:10px;color:var(--ink-2);font-weight:600}
+    .seg button.on{
+      background:linear-gradient(135deg,#06C755,#04A847);color:#fff;
+      box-shadow:0 3px 8px rgba(6,199,85,.3)
+    }
+
+    .conn-dot{
+      width:8px;height:8px;border-radius:50%;background:var(--ink-3);
+      display:inline-block;margin-right:6px;vertical-align:middle
+    }
+    .conn-dot.ok{background:var(--good);box-shadow:0 0 0 3px rgba(6,199,85,.18);animation:pulse 2s infinite}
+    .conn-dot.bad{background:var(--bad)}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(6,199,85,.18)}50%{box-shadow:0 0 0 6px rgba(6,199,85,.06)}}
+
+    .num{font-variant-numeric:tabular-nums;font-family:'Mali',sans-serif}
+
+    .copy-box{
+      display:flex;gap:8px;align-items:center;background:var(--line-tint);
+      border:1.5px solid #C8EBD6;padding:10px 12px;border-radius:14px;font-size:13px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all
+    }
+
+    /* progress bar (categories) */
+    .bar-track{height:8px;background:var(--surface-2);border-radius:999px;overflow:hidden}
+    .bar-fill{height:100%;border-radius:999px;transition:width .4s ease}
+
+    /* LINE share button */
+    .btn-line{
+      background:#06C755;color:#fff;border:0;
+      box-shadow:0 4px 14px rgba(6,199,85,.32)
+    }
+    .btn-line:hover{background:#05A648;transform:translateY(-2px)}
+  </style>
+</head>
+<body>
+
+<!-- ============ Welcome Screen 1: Firebase Setup ============ -->
+<div id="screen-fb-setup" class="welcome hidden">
+  <h1>หารกันเอง</h1>
+  <div class="sub">แอปคำนวณค่าใช้จ่ายร่วม สำหรับครอบครัวและกลุ่มเพื่อน</div>
+  <div class="card" style="max-width:380px">
+    <h3>ตั้งค่า Firebase ครั้งแรก</h3>
+    <div style="font-size:13px;color:var(--ink-2);margin-bottom:14px;line-height:1.55">
+      วาง Firebase config ทั้งก้อน (จะมีหน้าตาแบบ <code>{ apiKey: "...", databaseURL: "..." }</code>) ลงในช่องด้านล่าง
+      <br><br>
+      <a href="#" id="show-fb-help" style="color:var(--ink);text-decoration:underline">ดูวิธีสร้าง Firebase ฟรี (3 นาที)</a>
+    </div>
+    <div class="field">
+      <textarea id="fb-config-input" rows="8" placeholder='{
+  "apiKey": "...",
+  "authDomain": "...",
+  "databaseURL": "https://xxxx.firebaseio.com",
+  "projectId": "...",
+  "storageBucket": "...",
+  "messagingSenderId": "...",
+  "appId": "..."
+}' style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px"></textarea>
+    </div>
+    <button class="btn primary full" id="fb-save">บันทึกแล้วเริ่มใช้งาน</button>
+    <div id="fb-err" style="color:var(--bad);font-size:12px;margin-top:10px;display:none"></div>
+  </div>
+</div>
+
+<!-- ============ Welcome Screen 2: Choose / Create Trip ============ -->
+<div id="screen-trip" class="welcome hidden">
+  <h1>เริ่มต้น Trip ของคุณ</h1>
+  <div class="sub">สร้าง Trip ใหม่ หรือเข้าร่วม Trip ที่มีอยู่ด้วยรหัส</div>
+
+  <div class="card" style="max-width:380px;margin-bottom:14px">
+    <h3>สร้าง Trip ใหม่</h3>
+    <div class="field">
+      <label>ชื่อ Trip</label>
+      <input id="new-trip-name" placeholder="เช่น เที่ยวหัวหิน พ.ค. 68" />
+    </div>
+    <div class="field">
+      <label>ชื่อของคุณ</label>
+      <input id="new-trip-user" placeholder="ใส่ชื่อเล่นก็ได้" />
+    </div>
+    <button class="btn primary full" id="create-trip">สร้าง Trip</button>
+  </div>
+
+  <div class="card" style="max-width:380px">
+    <h3>เข้าร่วม Trip ที่มีอยู่</h3>
+    <div class="field">
+      <label>รหัส Trip (6 ตัวอักษร)</label>
+      <input id="join-trip-code" placeholder="เช่น HUAHIN" maxlength="20" style="text-transform:uppercase" />
+    </div>
+    <div class="field">
+      <label>ชื่อของคุณ</label>
+      <input id="join-trip-user" placeholder="ใส่ชื่อเล่นก็ได้" />
+    </div>
+    <button class="btn ghost full" id="join-trip">เข้าร่วม</button>
+  </div>
+
+  <div style="margin-top:18px;font-size:12px;color:var(--ink-3)">
+    <a href="#" id="reset-fb">ตั้งค่า Firebase ใหม่</a>
+  </div>
+</div>
+
+<!-- ============ Main App ============ -->
+<div id="screen-main" class="hidden">
+  <div class="app">
+    <div class="topbar" id="topbar">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span>หารกันเอง</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="trip-chip" id="trip-chip"></span>
+        <button class="icon-btn" id="open-share" title="แชร์ Trip">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        </button>
+        <button class="icon-btn" id="open-settings" title="ตั้งค่า">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="dashboard">สรุป</button>
+      <button class="tab" data-tab="expenses">รายจ่าย</button>
+      <button class="tab" data-tab="members">สมาชิก</button>
+      <button class="tab" data-tab="settle">เคลียร์</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <section id="tab-dashboard" class="tab-pane">
+      <div class="stat-grid" style="margin-bottom:12px">
+        <div class="stat">
+          <div class="label">รวมทั้ง Trip</div>
+          <div class="val num" id="ds-total">฿0</div>
+          <div class="sub" id="ds-count">0 รายการ</div>
+        </div>
+        <div class="stat">
+          <div class="label">เฉลี่ย/คน</div>
+          <div class="val num" id="ds-avg">฿0</div>
+          <div class="sub" id="ds-members">0 คน</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>สถานะของคุณ</h3>
+        <div id="my-status">
+          <div class="empty"><div class="txt">ยังไม่มีข้อมูล</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>ค่าใช้จ่ายของคุณตามหมวด</h3>
+        <div id="my-categories">
+          <div class="empty"><div class="txt">ยังไม่มีค่าใช้จ่าย</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>ภาพรวมแต่ละคน</h3>
+        <div id="all-members-summary">
+          <div class="empty"><div class="txt">เพิ่มสมาชิกเพื่อเริ่ม</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXPENSES -->
+    <section id="tab-expenses" class="tab-pane hidden">
+      <div class="card">
+        <h3 style="display:flex;justify-content:space-between;align-items:center">
+          <span>รายการค่าใช้จ่าย</span>
+          <span class="badge" id="exp-count-badge">0</span>
+        </h3>
+        <div id="expense-list">
+          <div class="empty">
+            <div class="ic">○</div>
+            <div class="txt">ยังไม่มีรายการ — กดปุ่มด้านล่างเพื่อเพิ่ม</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MEMBERS -->
+    <section id="tab-members" class="tab-pane hidden">
+      <div class="card">
+        <h3>สมาชิกใน Trip</h3>
+        <div id="member-list"></div>
+        <div class="divider"></div>
+        <div class="row">
+          <input id="new-member-name" placeholder="ชื่อสมาชิกใหม่" />
+          <button class="btn ghost" id="add-member">เพิ่ม</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTLE -->
+    <section id="tab-settle" class="tab-pane hidden">
+      <div class="card">
+        <h3>วิธีเคลียร์ค่าใช้จ่าย (น้อยที่สุด)</h3>
+        <div id="settle-list">
+          <div class="empty"><div class="txt">ทุกคนเคลียร์กันแล้ว ✓</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>ยอดสุทธิแต่ละคน</h3>
+        <div id="balance-list"></div>
+      </div>
+    </section>
+
+    <!-- FAB -->
+    <button class="fab" id="open-add">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      เพิ่มค่าใช้จ่าย
+    </button>
+  </div>
+</div>
+
+<!-- ============ Modal: Add/Edit Expense ============ -->
+<div class="modal-bg" id="modal-add">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modal-add-title">เพิ่มค่าใช้จ่าย</h2>
+      <button class="icon-btn" data-close="modal-add">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="field">
+      <label>รายการ</label>
+      <input id="ex-title" placeholder="เช่น มื้อเย็นที่ร้านชาวเล" />
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>จำนวนเงิน (บาท)</label>
+        <input id="ex-amount" type="number" inputmode="decimal" placeholder="0.00" min="0" step="0.01" />
+      </div>
+      <div class="field">
+        <label>หมวดหมู่</label>
+        <select id="ex-category">
+          <option value="🍽️ อาหาร">🍽️ อาหาร</option>
+          <option value="🏨 ที่พัก">🏨 ที่พัก</option>
+          <option value="🚗 เดินทาง">🚗 เดินทาง</option>
+          <option value="🎫 กิจกรรม">🎫 กิจกรรม</option>
+          <option value="🛒 ของฝาก">🛒 ของฝาก</option>
+          <option value="💧 น้ำ/ขนม">💧 น้ำ/ขนม</option>
+          <option value="📦 อื่นๆ">📦 อื่นๆ</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>คนจ่าย</label>
+      <select id="ex-payer"></select>
+    </div>
+
+    <div class="field">
+      <label style="display:flex;justify-content:space-between;align-items:center">
+        <span>หารให้ใครบ้าง</span>
+        <button class="btn sm ghost" id="select-all">เลือกทุกคน</button>
+      </label>
+      <div class="people-grid" id="ex-people"></div>
+    </div>
+
+    <div class="field">
+      <div class="seg">
+        <button class="on" data-split="equal">หารเท่ากัน</button>
+        <button data-split="custom">กำหนดเอง</button>
+      </div>
+      <div id="custom-split" class="hidden" style="margin-top:6px">
+        <div id="custom-split-rows"></div>
+        <div class="small muted right" style="margin-top:6px">
+          รวม: <span id="custom-sum" class="num">฿0</span>
+          / <span id="custom-target" class="num">฿0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>วันที่</label>
+      <input id="ex-date" type="date" />
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn danger hidden" id="ex-delete">ลบ</button>
+      <button class="btn primary" id="ex-save" style="flex:1">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Modal: Share ============ -->
+<div class="modal-bg" id="modal-share">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>แชร์ Trip นี้</h2>
+      <button class="icon-btn" data-close="modal-share">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div style="font-size:13px;color:var(--ink-2);margin-bottom:10px">ส่งรหัสนี้ให้คนในกลุ่ม LINE เข้ามาร่วม Trip ได้เลย</div>
+    <div class="field">
+      <label>รหัส Trip</label>
+      <div class="copy-box">
+        <span id="share-code" style="flex:1;font-weight:600;font-size:18px;letter-spacing:.05em"></span>
+        <button class="btn sm ghost" id="copy-code">คัดลอก</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>ลิงก์ตรง (เปิดได้เลย)</label>
+      <div class="copy-box">
+        <span id="share-link" style="flex:1;font-size:11px"></span>
+        <button class="btn sm ghost" id="copy-link">คัดลอก</button>
+      </div>
+    </div>
+    <button class="btn primary full" id="share-line" style="margin-top:6px">📨 แชร์ผ่าน LINE</button>
+  </div>
+</div>
+
+<!-- ============ Modal: Settings ============ -->
+<div class="modal-bg" id="modal-settings">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>ตั้งค่า</h2>
+      <button class="icon-btn" data-close="modal-settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="card" style="margin-bottom:10px">
+      <h3>ตัวคุณ</h3>
+      <div class="field">
+        <label>ชื่อในระบบ</label>
+        <select id="settings-me"></select>
+        <div class="hint">ใช้สำหรับคำนวณว่าใครจ่ายให้ใคร และเงินคืนของคุณ</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:10px">
+      <h3>การเชื่อมต่อ</h3>
+      <div style="font-size:13px"><span class="conn-dot ok" id="conn-dot"></span><span id="conn-text">เชื่อมต่อกับ Firebase แล้ว</span></div>
+      <div class="divider"></div>
+      <button class="btn ghost full" id="leave-trip">ออกจาก Trip นี้</button>
+      <button class="btn ghost full" id="reset-all" style="margin-top:8px;color:var(--bad)">รีเซ็ต Firebase config</button>
+    </div>
+
+    <div class="card">
+      <h3>เกี่ยวกับ</h3>
+      <div class="small muted">หารกันเอง · เวอร์ชัน 1.0 · ทำมาด้วย ❤︎ สำหรับครอบครัวและก๊วนเที่ยว</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Modal: Firebase Help ============ -->
+<div class="modal-bg" id="modal-fb-help">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>วิธีสร้าง Firebase ฟรี</h2>
+      <button class="icon-btn" data-close="modal-fb-help">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <ol style="padding-left:20px;line-height:1.8;font-size:14px">
+      <li>เปิด <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> แล้ว login ด้วย Google</li>
+      <li>คลิก <b>Add project</b> → ตั้งชื่ออะไรก็ได้ (เช่น <i>huahin-expense</i>) → กด Continue → ปิด Google Analytics ก็ได้ → Create</li>
+      <li>เมื่อสร้างเสร็จ คลิกไอคอน <b>&lt;/&gt;</b> (Web) เพื่อเพิ่ม Web app → ตั้ง nickname → Register</li>
+      <li>คัดลอกเฉพาะส่วน <code>const firebaseConfig = {...}</code> เอามาวางในช่อง</li>
+      <li>เมนูซ้าย <b>Build → Realtime Database → Create Database</b> → เลือก location <b>asia-southeast1</b> → Start in <b>test mode</b> → Enable</li>
+      <li>เสร็จแล้ว — กลับมา paste config ที่นี่ได้เลย</li>
+    </ol>
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:12px;color:var(--ink-2);margin-top:10px">
+      ⚠️ Test mode ใช้ได้ 30 วัน หลังจากนั้นต้องแก้ rules เป็น <code>".read": true, ".write": true</code> หรือใส่ Auth ครับ
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase v10 compat with CDN fallback -->
+<script>
+(function(){
+  // Attempt to load Firebase from primary CDN; fallback to jsdelivr if blocked
+  function loadScript(src){
+    return new Promise((resolve, reject)=>{
+      const s = document.createElement('script');
+      s.src = src; s.async = false;
+      s.onload = ()=>resolve(src);
+      s.onerror = ()=>reject(new Error('Failed: '+src));
+      document.head.appendChild(s);
+    });
+  }
+  const cdns = [
+    ['https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js',
+     'https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js'],
+    ['https://cdn.jsdelivr.net/npm/firebase@10.12.5/compat/app/dist/index.cjs.js',
+     'https://cdn.jsdelivr.net/npm/firebase@10.12.5/compat/database/dist/index.cjs.js'],
+  ];
+  async function tryLoad(){
+    let lastErr;
+    for (const pair of cdns){
+      try {
+        await loadScript(pair[0]);
+        await loadScript(pair[1]);
+        if (typeof firebase !== 'undefined' && firebase.initializeApp){
+          window.__fbReady = true;
+          window.dispatchEvent(new Event('fb-ready'));
+          return;
+        }
+      } catch(e){ lastErr = e; console.warn('CDN failed', e); }
+    }
+    window.__fbError = lastErr || new Error('Firebase SDK โหลดไม่ได้จาก CDN ใดๆ');
+    window.dispatchEvent(new Event('fb-failed'));
+  }
+  tryLoad();
+})();
+</script>
+
+<script>
+/* ===========================================================
+   หารกันเอง — Trip Expense Splitter
+   =========================================================== */
+
+const LS = {
+  fb: 'haargun_fb_config_v1',
+  trip: 'haargun_trip_v1',     // {tripId, tripName, me}
+};
+
+let app = null;       // firebase app
+let db = null;        // realtime db ref
+let tripRef = null;   // ref to trip node
+let state = {
+  tripId: null,
+  tripName: '',
+  me: null,
+  members: [],   // [{id, name}]
+  expenses: []   // [{id, title, amount, payer, beneficiaries:[ids], splitMode, customSplit:{id:amount}, category, date, createdAt}]
+};
+let editingExpenseId = null;
+let topbarEl;
+
+/* --------------- Helpers --------------- */
+const $ = (sel,root=document)=>root.querySelector(sel);
+const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const fmt = (n)=> '฿' + (Math.round((n||0)*100)/100).toLocaleString('th-TH', {minimumFractionDigits:0, maximumFractionDigits:2});
+const fmtSigned = (n)=> (n>0?'+':'') + fmt(n).replace('฿','') + ' ฿';
+const uuid = ()=> 'm_' + Math.random().toString(36).slice(2,9);
+const todayISO = ()=> new Date().toISOString().slice(0,10);
+const toast = (msg)=>{ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),1800); };
+
+const initials = (name)=>{
+  if(!name) return '?';
+  const parts = String(name).trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0,1).toUpperCase();
+  return (parts[0].slice(0,1) + parts[1].slice(0,1)).toUpperCase();
+};
+
+const showScreen = (id)=>{
+  ['screen-fb-setup','screen-trip','screen-main'].forEach(s=>{
+    $('#'+s).classList.toggle('hidden', s!==id);
+  });
+};
+
+const openModal = (id)=> $('#'+id).classList.add('show');
+const closeModal = (id)=> $('#'+id).classList.remove('show');
+
+document.addEventListener('click', e=>{
+  const c = e.target.closest('[data-close]');
+  if (c) closeModal(c.getAttribute('data-close'));
+});
+
+/* --------------- Firebase Config Setup --------------- */
+function loadFbConfig(){
+  try { return JSON.parse(localStorage.getItem(LS.fb) || 'null'); } catch { return null; }
+}
+function saveFbConfig(cfg){ localStorage.setItem(LS.fb, JSON.stringify(cfg)); }
+function clearFbConfig(){ localStorage.removeItem(LS.fb); }
+
+function initFirebase(cfg){
+  if (app) return true;
+  if (!cfg || !cfg.databaseURL) throw new Error('ต้องมี databaseURL');
+  if (typeof firebase === 'undefined' || !firebase.initializeApp){
+    throw new Error('Firebase SDK ยังไม่โหลด — เช็ค internet หรือปิด adblocker (gstatic.com / jsdelivr.net) แล้ว refresh');
+  }
+  app = firebase.initializeApp(cfg);
+  db = firebase.database();
+  return true;
+}
+
+// Wait until Firebase SDK is loaded (handles slow network / fallback CDN)
+function waitForFirebase(timeoutMs){
+  return new Promise((resolve, reject)=>{
+    if (window.__fbReady && typeof firebase !== 'undefined') return resolve();
+    if (window.__fbError) return reject(window.__fbError);
+    const onReady = ()=>{ cleanup(); resolve(); };
+    const onFail  = ()=>{ cleanup(); reject(window.__fbError || new Error('โหลด Firebase SDK ไม่สำเร็จ')); };
+    const t = setTimeout(()=>{ cleanup(); reject(new Error('Firebase SDK โหลดเกิน '+(timeoutMs/1000)+' วินาที — เช็ค internet หรือ adblocker')); }, timeoutMs||15000);
+    const cleanup = ()=>{ clearTimeout(t); window.removeEventListener('fb-ready', onReady); window.removeEventListener('fb-failed', onFail); };
+    window.addEventListener('fb-ready', onReady);
+    window.addEventListener('fb-failed', onFail);
+  });
+}
+
+$('#show-fb-help').addEventListener('click', e=>{ e.preventDefault(); openModal('modal-fb-help'); });
+$('#fb-save').addEventListener('click', async ()=>{
+  const txt = $('#fb-config-input').value.trim();
+  const errEl = $('#fb-err');
+  errEl.style.display='none';
+  let cfg;
+  try {
+    // allow either JSON or JS-object-style
+    let cleaned = txt.replace(/^const\s+\w+\s*=\s*/,'').replace(/;?\s*$/,'').trim();
+    // try JSON parse first
+    try { cfg = JSON.parse(cleaned); }
+    catch {
+      // try to coerce JS-style {key:"val"} to JSON by quoting keys
+      cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z_$][\w$]*)\s*:/g, '$1"$2":').replace(/'/g,'"');
+      cfg = JSON.parse(cleaned);
+    }
+  } catch (err) {
+    errEl.textContent='อ่าน config ไม่สำเร็จ: '+ err.message; errEl.style.display='block';
+    return;
+  }
+  if (!cfg.apiKey || !cfg.databaseURL){
+    errEl.textContent='ต้องมีอย่างน้อย apiKey และ databaseURL'; errEl.style.display='block';
+    return;
+  }
+  try {
+    errEl.style.display='block';
+    errEl.style.color='var(--ink-2)';
+    errEl.textContent='กำลังโหลด Firebase SDK...';
+    await waitForFirebase(15000);
+    errEl.style.display='none';
+    errEl.style.color='var(--bad)';
+    saveFbConfig(cfg);
+    initFirebase(cfg);
+    showScreen('screen-trip');
+  } catch(e){
+    errEl.style.color='var(--bad)';
+    errEl.textContent='Init Firebase ไม่สำเร็จ: '+e.message;
+    errEl.style.display='block';
+  }
+});
+
+$('#reset-fb').addEventListener('click', e=>{
+  e.preventDefault();
+  if (confirm('ล้าง Firebase config? คุณจะต้องวางใหม่อีกครั้ง')){
+    clearFbConfig();
+    location.reload();
+  }
+});
+
+/* --------------- Trip Create / Join --------------- */
+function makeTripCode(name){
+  const seed = (name || 'trip').replace(/[^a-zA-Z0-9ก-๙]/g,'').slice(0,3).toUpperCase() || 'TRP';
+  const rand = Math.random().toString(36).slice(2,5).toUpperCase();
+  return seed + rand;
+}
+
+$('#create-trip').addEventListener('click', async ()=>{
+  const name = $('#new-trip-name').value.trim();
+  const userName = $('#new-trip-user').value.trim();
+  if (!name) return toast('ใส่ชื่อ Trip ก่อน');
+  if (!userName) return toast('ใส่ชื่อของคุณก่อน');
+  const code = makeTripCode(name);
+  const meId = uuid();
+  const init = {
+    name, createdAt: Date.now(),
+    members: { [meId]: { id: meId, name: userName } },
+    expenses: {}
+  };
+  await db.ref('trips/'+code).set(init);
+  saveLocalTrip({ tripId: code, tripName: name, me: meId });
+  await openTrip(code, meId);
+});
+
+$('#join-trip').addEventListener('click', async ()=>{
+  const code = ($('#join-trip-code').value || '').trim().toUpperCase();
+  const userName = $('#join-trip-user').value.trim();
+  if (!code) return toast('ใส่รหัส Trip ก่อน');
+  if (!userName) return toast('ใส่ชื่อของคุณก่อน');
+  const snap = await db.ref('trips/'+code).get();
+  if (!snap.exists()) return toast('ไม่พบ Trip นี้');
+  const data = snap.val();
+  // try find existing member by name
+  let meId = null;
+  if (data.members){
+    for (const [id,m] of Object.entries(data.members)){
+      if (String(m.name).trim().toLowerCase() === userName.toLowerCase()){ meId = id; break; }
+    }
+  }
+  if (!meId){
+    meId = uuid();
+    await db.ref(`trips/${code}/members/${meId}`).set({id: meId, name: userName});
+  }
+  saveLocalTrip({ tripId: code, tripName: data.name || code, me: meId });
+  await openTrip(code, meId);
+});
+
+function saveLocalTrip(t){ localStorage.setItem(LS.trip, JSON.stringify(t)); }
+function loadLocalTrip(){ try { return JSON.parse(localStorage.getItem(LS.trip)||'null'); } catch { return null; } }
+function clearLocalTrip(){ localStorage.removeItem(LS.trip); }
+
+/* --------------- Open Trip & Subscribe --------------- */
+async function openTrip(code, meId){
+  state.tripId = code;
+  state.me = meId;
+  tripRef = db.ref('trips/'+code);
+  // url hash for sharing
+  history.replaceState(null,'','#'+code);
+  showScreen('screen-main');
+  setupTopbar();
+  tripRef.on('value', snap=>{
+    const d = snap.val() || {};
+    state.tripName = d.name || code;
+    state.members = Object.values(d.members || {});
+    state.expenses = Object.values(d.expenses || {}).sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.createdAt||0)-(a.createdAt||0));
+    renderAll();
+    setConn(true);
+  }, err=>{
+    console.error(err); setConn(false); toast('โหลดข้อมูลไม่สำเร็จ');
+  });
+}
+
+function setConn(ok){
+  const dot = $('#conn-dot'); const txt = $('#conn-text');
+  if(!dot) return;
+  dot.classList.toggle('ok', ok);
+  dot.classList.toggle('bad', !ok);
+  txt.textContent = ok ? 'เชื่อมต่อกับ Firebase แล้ว' : 'การเชื่อมต่อมีปัญหา';
+}
+
+/* --------------- Topbar / Tabs --------------- */
+function setupTopbar(){
+  topbarEl = $('#topbar');
+  $('#trip-chip').textContent = state.tripName + ' · ' + state.tripId;
+  // tabs
+  $$('.tab').forEach(t=>{
+    t.onclick = ()=>{
+      $$('.tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      $$('.tab-pane').forEach(p=>p.classList.add('hidden'));
+      $('#tab-'+t.dataset.tab).classList.remove('hidden');
+      window.scrollTo({top:0,behavior:'instant'});
+    };
+  });
+  document.addEventListener('scroll', ()=>{
+    topbarEl.classList.toggle('scrolled', window.scrollY > 4);
+  });
+}
+
+/* --------------- Renderers --------------- */
+function renderAll(){
+  renderMembers();
+  renderExpenses();
+  renderDashboard();
+  renderSettlement();
+  // ensure my id still valid
+  if (!state.members.find(m=>m.id===state.me) && state.members.length){
+    // fallback to first
+    state.me = state.members[0].id;
+    const lt = loadLocalTrip(); if (lt){ lt.me = state.me; saveLocalTrip(lt); }
+  }
+}
+
+/* members tab */
+function renderMembers(){
+  const list = $('#member-list');
+  if (!state.members.length){
+    list.innerHTML = '<div class="empty"><div class="txt">ยังไม่มีสมาชิก</div></div>';
+    return;
+  }
+  list.innerHTML = state.members.map(m=>`
+    <div class="settle-row">
+      <div class="avatar" style="width:32px;height:32px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px">${initials(m.name)}</div>
+      <div style="flex:1">
+        <div>${escapeHtml(m.name)} ${m.id===state.me?'<span class="badge" style="margin-left:6px">คุณ</span>':''}</div>
+      </div>
+      <button class="icon-btn" data-edit-m="${m.id}" title="แก้ไข">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="icon-btn" data-del-m="${m.id}" title="ลบ">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      </button>
+    </div>
+  `).join('');
+
+  $$('#member-list [data-edit-m]').forEach(b=>{
+    b.onclick = ()=>{
+      const id = b.dataset.editM;
+      const m = state.members.find(x=>x.id===id); if(!m) return;
+      const nn = prompt('แก้ไขชื่อสมาชิก:', m.name);
+      if (nn && nn.trim()) tripRef.child('members/'+id+'/name').set(nn.trim());
+    };
+  });
+  $$('#member-list [data-del-m]').forEach(b=>{
+    b.onclick = async ()=>{
+      const id = b.dataset.delM;
+      const m = state.members.find(x=>x.id===id); if(!m) return;
+      if (state.members.length<=1) return toast('ลบทั้งหมดไม่ได้');
+      // check if used in any expense
+      const used = state.expenses.some(e=> e.payer===id || (e.beneficiaries||[]).includes(id));
+      if (used && !confirm(`${m.name} มีรายการค่าใช้จ่ายอยู่ — ลบจริงๆ?`)) return;
+      await tripRef.child('members/'+id).remove();
+    };
+  });
+}
+
+$('#add-member').addEventListener('click', async ()=>{
+  const name = $('#new-member-name').value.trim();
+  if (!name) return;
+  if (state.members.some(m=>m.name.toLowerCase()===name.toLowerCase())) return toast('มีชื่อซ้ำ');
+  const id = uuid();
+  await tripRef.child('members/'+id).set({id, name});
+  $('#new-member-name').value='';
+});
+
+/* expenses */
+function renderExpenses(){
+  const list = $('#expense-list');
+  $('#exp-count-badge').textContent = state.expenses.length;
+  if (!state.expenses.length){
+    list.innerHTML = `<div class="empty"><div class="ic">○</div><div class="txt">ยังไม่มีรายการ — กดปุ่มด้านล่างเพื่อเพิ่ม</div></div>`;
+    return;
+  }
+  list.innerHTML = state.expenses.map(e=>{
+    const payer = state.members.find(m=>m.id===e.payer);
+    const cat = (e.category||'').slice(0,2);
+    const dateStr = formatDate(e.date);
+    return `
+      <div class="expense" data-edit-e="${e.id}">
+        <div class="icon">${cat||'•'}</div>
+        <div class="body">
+          <div class="title">${escapeHtml(e.title||'(ไม่มีชื่อ)')}</div>
+          <div class="meta">${escapeHtml((e.category||'').replace(/^.{2}\s*/,''))} · ${dateStr} · ${ (e.beneficiaries||[]).length } คน</div>
+        </div>
+        <div class="amt">
+          <div class="num">${fmt(e.amount)}</div>
+          <div class="by">${payer?escapeHtml(payer.name):'?'} จ่าย</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  $$('#expense-list [data-edit-e]').forEach(el=>{
+    el.onclick = ()=> openExpenseModal(el.dataset.editE);
+  });
+}
+
+function formatDate(d){
+  if(!d) return '-';
+  try {
+    const dt = new Date(d+'T00:00:00');
+    return dt.toLocaleDateString('th-TH', {day:'numeric', month:'short'});
+  } catch { return d; }
+}
+
+/* --------------- Add/Edit Expense Modal --------------- */
+function openExpenseModal(id){
+  editingExpenseId = id || null;
+  const e = id ? state.expenses.find(x=>x.id===id) : null;
+  $('#modal-add-title').textContent = e? 'แก้ไขค่าใช้จ่าย':'เพิ่มค่าใช้จ่าย';
+  $('#ex-delete').classList.toggle('hidden', !e);
+  $('#ex-title').value = e? e.title||'' : '';
+  $('#ex-amount').value = e? e.amount||'' : '';
+  $('#ex-category').value = e? (e.category|| '🍽️ อาหาร') : '🍽️ อาหาร';
+  $('#ex-date').value = e? e.date||todayISO() : todayISO();
+
+  // payer dropdown
+  const payerSel = $('#ex-payer');
+  payerSel.innerHTML = state.members.map(m=>`<option value="${m.id}" ${ (e?e.payer===m.id : m.id===state.me) ? 'selected':''}>${escapeHtml(m.name)}</option>`).join('');
+
+  // beneficiaries
+  const grid = $('#ex-people');
+  const selected = new Set(e? (e.beneficiaries||[]) : state.members.map(m=>m.id));
+  grid.innerHTML = state.members.map(m=>`
+    <div class="person-chip ${selected.has(m.id)?'selected':''}" data-pid="${m.id}">
+      <div class="avatar">${initials(m.name)}</div>
+      <div>${escapeHtml(m.name)}</div>
+    </div>
+  `).join('');
+  $$('#ex-people .person-chip').forEach(ch=>{
+    ch.onclick = ()=>{ ch.classList.toggle('selected'); refreshCustomSplit(); };
+  });
+
+  // split mode
+  setSplitMode(e? (e.splitMode||'equal') : 'equal');
+  if (e && e.splitMode==='custom' && e.customSplit){
+    setTimeout(()=>{
+      Object.entries(e.customSplit).forEach(([pid,amt])=>{
+        const inp = $(`#cs-${pid}`);
+        if (inp) inp.value = amt;
+      });
+      updateCustomSum();
+    },0);
+  }
+
+  openModal('modal-add');
+}
+
+function setSplitMode(mode){
+  $$('#modal-add .seg button').forEach(b=> b.classList.toggle('on', b.dataset.split===mode));
+  $('#custom-split').classList.toggle('hidden', mode!=='custom');
+  if (mode==='custom') refreshCustomSplit();
+}
+$$('#modal-add .seg button').forEach(b=>{
+  b.onclick = ()=> setSplitMode(b.dataset.split);
+});
+
+function refreshCustomSplit(){
+  const beneficiaries = $$('#ex-people .person-chip.selected').map(ch=>ch.dataset.pid);
+  const target = parseFloat($('#ex-amount').value)||0;
+  $('#custom-target').textContent = fmt(target);
+  const rows = $('#custom-split-rows');
+  rows.innerHTML = beneficiaries.map(pid=>{
+    const m = state.members.find(x=>x.id===pid);
+    const cur = ($('#cs-'+pid)?.value) || '';
+    return `
+      <div class="split-row">
+        <div class="name"><div class="avatar">${initials(m?.name)}</div>${escapeHtml(m?.name||'?')}</div>
+        <input type="number" inputmode="decimal" id="cs-${pid}" placeholder="0.00" min="0" step="0.01" value="${cur}" />
+      </div>
+    `;
+  }).join('');
+  $$('#custom-split-rows input').forEach(inp=> inp.oninput = updateCustomSum);
+  updateCustomSum();
+}
+function updateCustomSum(){
+  const sum = $$('#custom-split-rows input').reduce((s,i)=> s + (parseFloat(i.value)||0), 0);
+  const sumEl = $('#custom-sum');
+  sumEl.textContent = fmt(sum);
+  const target = parseFloat($('#ex-amount').value)||0;
+  sumEl.style.color = (Math.abs(sum-target)<0.005) ? 'var(--good)' : 'var(--bad)';
+}
+
+$('#ex-amount').addEventListener('input', ()=> {
+  if (!$('#custom-split').classList.contains('hidden')) {
+    $('#custom-target').textContent = fmt(parseFloat($('#ex-amount').value)||0);
+    updateCustomSum();
+  }
+});
+
+$('#select-all').addEventListener('click', e=>{
+  e.preventDefault();
+  const all = $$('#ex-people .person-chip');
+  const allSelected = all.every(c=>c.classList.contains('selected'));
+  all.forEach(c=> c.classList.toggle('selected', !allSelected));
+  refreshCustomSplit();
+});
+
+$('#open-add').addEventListener('click', ()=>{
+  if (!state.members.length) return toast('เพิ่มสมาชิกก่อน');
+  openExpenseModal(null);
+});
+
+$('#ex-save').addEventListener('click', async ()=>{
+  const title = $('#ex-title').value.trim();
+  const amount = parseFloat($('#ex-amount').value)||0;
+  const category = $('#ex-category').value;
+  const date = $('#ex-date').value || todayISO();
+  const payer = $('#ex-payer').value;
+  const beneficiaries = $$('#ex-people .person-chip.selected').map(ch=>ch.dataset.pid);
+  const splitMode = $$('#modal-add .seg button').find(b=>b.classList.contains('on')).dataset.split;
+
+  if (!title) return toast('ใส่ชื่อรายการ');
+  if (!(amount>0)) return toast('ใส่จำนวนเงิน');
+  if (!payer) return toast('เลือกคนจ่าย');
+  if (!beneficiaries.length) return toast('เลือกคนหารอย่างน้อย 1 คน');
+
+  let customSplit = null;
+  if (splitMode==='custom'){
+    customSplit = {};
+    let sum = 0;
+    beneficiaries.forEach(pid=>{
+      const v = parseFloat($('#cs-'+pid).value)||0;
+      customSplit[pid] = v;
+      sum += v;
+    });
+    if (Math.abs(sum-amount) > 0.01) return toast('ผลรวมไม่ตรงกับจำนวนเงิน');
+  }
+
+  const id = editingExpenseId || ('e_' + Date.now() + '_' + Math.random().toString(36).slice(2,6));
+  const data = {
+    id, title, amount, category, date, payer,
+    beneficiaries, splitMode,
+    customSplit: customSplit || null,
+    createdAt: editingExpenseId ? (state.expenses.find(x=>x.id===id)?.createdAt || Date.now()) : Date.now(),
+    updatedAt: Date.now()
+  };
+  await tripRef.child('expenses/'+id).set(data);
+  closeModal('modal-add');
+  toast(editingExpenseId? 'แก้ไขแล้ว':'เพิ่มแล้ว');
+});
+
+$('#ex-delete').addEventListener('click', async ()=>{
+  if (!editingExpenseId) return;
+  if (!confirm('ลบรายการนี้?')) return;
+  await tripRef.child('expenses/'+editingExpenseId).remove();
+  closeModal('modal-add');
+  toast('ลบแล้ว');
+});
+
+/* --------------- Calculations --------------- */
+// returns {paid:{id:total}, owed:{id:total}, byCat:{id:{cat:amt}}, totalAll}
+function computeBalances(){
+  const paid = {}, owed = {}, byCat = {};
+  let totalAll = 0;
+  state.members.forEach(m=>{ paid[m.id]=0; owed[m.id]=0; byCat[m.id]={}; });
+  state.expenses.forEach(e=>{
+    totalAll += +e.amount||0;
+    if (paid[e.payer]!==undefined) paid[e.payer] += +e.amount||0;
+    const benes = (e.beneficiaries||[]).filter(b=> paid[b]!==undefined);
+    if (!benes.length) return;
+    if (e.splitMode==='custom' && e.customSplit){
+      benes.forEach(b=>{
+        const v = +e.customSplit[b]||0;
+        owed[b] += v;
+        byCat[b][e.category] = (byCat[b][e.category]||0) + v;
+      });
+    } else {
+      const share = (+e.amount||0) / benes.length;
+      benes.forEach(b=>{
+        owed[b] += share;
+        byCat[b][e.category] = (byCat[b][e.category]||0) + share;
+      });
+    }
+  });
+  return {paid, owed, byCat, totalAll};
+}
+
+// minimum transactions to settle
+function settle(net){
+  // net[id] = paid - owed; positive = owed money; negative = owes money
+  const creditors = [];
+  const debtors = [];
+  Object.entries(net).forEach(([id,v])=>{
+    if (v > 0.005) creditors.push({id, v});
+    else if (v < -0.005) debtors.push({id, v: -v});
+  });
+  creditors.sort((a,b)=>b.v-a.v);
+  debtors.sort((a,b)=>b.v-a.v);
+  const tx = [];
+  let i=0,j=0;
+  while (i<debtors.length && j<creditors.length){
+    const pay = Math.min(debtors[i].v, creditors[j].v);
+    tx.push({from:debtors[i].id, to:creditors[j].id, amount: Math.round(pay*100)/100});
+    debtors[i].v -= pay; creditors[j].v -= pay;
+    if (debtors[i].v < 0.005) i++;
+    if (creditors[j].v < 0.005) j++;
+  }
+  return tx;
+}
+
+/* --------------- Dashboard --------------- */
+function renderDashboard(){
+  const {paid, owed, byCat, totalAll} = computeBalances();
+  $('#ds-total').textContent = fmt(totalAll);
+  $('#ds-count').textContent = state.expenses.length + ' รายการ';
+  $('#ds-members').textContent = state.members.length + ' คน';
+  $('#ds-avg').textContent = fmt(state.members.length? totalAll/state.members.length : 0);
+
+  // my status
+  const meId = state.me;
+  const myEl = $('#my-status');
+  if (!meId || !state.members.find(m=>m.id===meId)){
+    myEl.innerHTML = `<div class="empty"><div class="txt">เลือกตัวคุณในเมนู ⚙ ตั้งค่า</div></div>`;
+  } else {
+    const myPaid = paid[meId]||0;
+    const myOwed = owed[meId]||0;
+    const myNet = myPaid - myOwed;
+    myEl.innerHTML = `
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="label">คุณจ่ายไป</div>
+          <div class="val num">${fmt(myPaid)}</div>
+        </div>
+        <div class="stat">
+          <div class="label">ส่วนของคุณ</div>
+          <div class="val num">${fmt(myOwed)}</div>
+        </div>
+      </div>
+      <div class="stat" style="margin-top:10px">
+        <div class="label">${myNet>=0?'จะได้คืน':'ต้องจ่ายเพิ่ม'}</div>
+        <div class="val num ${myNet>=0?'good':'bad'}">${fmt(Math.abs(myNet))}</div>
+        <div class="sub">${myNet>=0?'คนอื่นต้องคืนเงินคุณ':'คุณต้องโอนให้คนอื่น'}</div>
+      </div>
+    `;
+  }
+
+  // my categories
+  const catEl = $('#my-categories');
+  if (meId && byCat[meId]){
+    const cats = Object.entries(byCat[meId]).filter(([_,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+    if (!cats.length){
+      catEl.innerHTML = `<div class="empty"><div class="txt">ยังไม่มีค่าใช้จ่าย</div></div>`;
+    } else {
+      const myTotal = cats.reduce((s,[,v])=>s+v,0);
+      catEl.innerHTML = cats.map(([cat,v])=>{
+        const pct = myTotal? Math.round(v/myTotal*100):0;
+        return `
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+              <span>${escapeHtml(cat||'(ไม่ระบุ)')}</span>
+              <span class="num muted">${fmt(v)} · ${pct}%</span>
+            </div>
+            <div style="height:6px;background:var(--surface-2);border-radius:999px;overflow:hidden">
+              <div style="width:${pct}%;height:100%;background:var(--ink)"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // all members summary
+  const allEl = $('#all-members-summary');
+  if (!state.members.length){
+    allEl.innerHTML = `<div class="empty"><div class="txt">เพิ่มสมาชิกเพื่อเริ่ม</div></div>`;
+  } else {
+    allEl.innerHTML = state.members.map(m=>{
+      const p=paid[m.id]||0, o=owed[m.id]||0; const n=p-o;
+      return `
+        <div class="settle-row">
+          <div class="avatar" style="width:30px;height:30px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px">${initials(m.name)}</div>
+          <div style="flex:1">
+            <div style="font-size:14px">${escapeHtml(m.name)} ${m.id===state.me?'<span class="badge">คุณ</span>':''}</div>
+            <div class="small muted">จ่าย ${fmt(p)} · ส่วนตัว ${fmt(o)}</div>
+          </div>
+          <div class="num" style="font-weight:600;color:${n>=0?'var(--good)':'var(--bad)'}">
+            ${n>=0?'+':''}${fmt(Math.abs(n)).replace('฿','')}฿
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+/* --------------- Settlement Tab --------------- */
+function renderSettlement(){
+  const {paid, owed} = computeBalances();
+  const net = {};
+  state.members.forEach(m=> net[m.id] = (paid[m.id]||0) - (owed[m.id]||0));
+  const tx = settle(JSON.parse(JSON.stringify(net)));
+  const list = $('#settle-list');
+  if (!tx.length){
+    list.innerHTML = `<div class="empty"><div class="txt">ทุกคนเคลียร์กันแล้ว ✓</div></div>`;
+  } else {
+    list.innerHTML = tx.map(t=>{
+      const from = state.members.find(m=>m.id===t.from);
+      const to = state.members.find(m=>m.id===t.to);
+      return `
+        <div class="settle-row">
+          <div class="avatar" style="width:28px;height:28px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px">${initials(from?.name)}</div>
+          <span>${escapeHtml(from?.name||'?')}</span>
+          <span class="arrow">→</span>
+          <div class="avatar" style="width:28px;height:28px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px">${initials(to?.name)}</div>
+          <span>${escapeHtml(to?.name||'?')}</span>
+          <span class="amt num">${fmt(t.amount)}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // balance list
+  const bl = $('#balance-list');
+  if (!state.members.length){
+    bl.innerHTML = `<div class="empty"><div class="txt">—</div></div>`;
+  } else {
+    bl.innerHTML = state.members.map(m=>{
+      const n = net[m.id]||0;
+      return `
+        <div class="settle-row">
+          <div class="avatar" style="width:28px;height:28px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px">${initials(m.name)}</div>
+          <div style="flex:1">${escapeHtml(m.name)}</div>
+          <div class="num" style="color:${n>=0?'var(--good)':'var(--bad)'};font-weight:600">${n>=0?'+':'-'}${fmt(Math.abs(n)).replace('฿','')}฿</div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+/* --------------- Share / Settings --------------- */
+$('#open-share').addEventListener('click', ()=>{
+  $('#share-code').textContent = state.tripId;
+  const url = location.origin + location.pathname + '#' + state.tripId;
+  $('#share-link').textContent = url;
+  openModal('modal-share');
+});
+$('#copy-code').addEventListener('click', ()=>{
+  navigator.clipboard.writeText(state.tripId).then(()=>toast('คัดลอกแล้ว'));
+});
+$('#copy-link').addEventListener('click', ()=>{
+  const url = location.origin + location.pathname + '#' + state.tripId;
+  navigator.clipboard.writeText(url).then(()=>toast('คัดลอกแล้ว'));
+});
+$('#share-line').addEventListener('click', ()=>{
+  const url = location.origin + location.pathname + '#' + state.tripId;
+  const text = `🏖️ Trip: ${state.tripName}\nรหัส: ${state.tripId}\nลิงก์: ${url}`;
+  const lineUrl = 'https://line.me/R/msg/text/?' + encodeURIComponent(text);
+  window.open(lineUrl, '_blank');
+});
+
+$('#open-settings').addEventListener('click', ()=>{
+  const sel = $('#settings-me');
+  sel.innerHTML = state.members.map(m=>`<option value="${m.id}" ${m.id===state.me?'selected':''}>${escapeHtml(m.name)}</option>`).join('');
+  sel.onchange = ()=>{
+    state.me = sel.value;
+    const lt = loadLocalTrip(); if (lt){ lt.me = state.me; saveLocalTrip(lt); }
+    renderAll();
+    toast('อัพเดทแล้ว');
+  };
+  openModal('modal-settings');
+});
+
+$('#leave-trip').addEventListener('click', ()=>{
+  if (!confirm('ออกจาก Trip นี้? (ข้อมูลใน Cloud ยังอยู่)')) return;
+  clearLocalTrip();
+  history.replaceState(null,'','#');
+  location.reload();
+});
+$('#reset-all').addEventListener('click', ()=>{
+  if (!confirm('ลบ Firebase config ทั้งหมด? คุณจะต้องตั้งค่าใหม่')) return;
+  clearFbConfig();
+  clearLocalTrip();
+  history.replaceState(null,'','#');
+  location.reload();
+});
+
+/* --------------- Utilities --------------- */
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* --------------- Bootstrap --------------- */
+async function bootstrap(){
+  const cfg = loadFbConfig();
+  if (!cfg){
+    showScreen('screen-fb-setup');
+    return;
+  }
+  try {
+    await waitForFirebase(15000);
+    initFirebase(cfg);
+  } catch(e){
+    console.error(e);
+    showScreen('screen-fb-setup');
+    // pre-fill saved config so user doesn't have to retype
+    try { $('#fb-config-input').value = JSON.stringify(cfg, null, 2); } catch {}
+    const errEl = $('#fb-err');
+    errEl.style.display='block';
+    errEl.textContent = e.message;
+    return;
+  }
+
+  // hash-based join
+  const hashCode = location.hash.replace(/^#/,'').trim().toUpperCase();
+  const local = loadLocalTrip();
+
+  if (hashCode && (!local || local.tripId !== hashCode)){
+    // need to join the hash trip
+    const snap = await db.ref('trips/'+hashCode).get();
+    if (snap.exists()){
+      // reuse user name from local if exists; otherwise prompt
+      let userName = local?.tripId === hashCode ? null : null;
+      const data = snap.val();
+      const existingMember = local && data.members?.[local.me] ? data.members[local.me] : null;
+      if (!existingMember){
+        userName = prompt(`เข้าร่วม Trip "${data.name||hashCode}" — ใส่ชื่อของคุณ:`);
+        if (!userName) { showScreen('screen-trip'); return; }
+        // try existing member with same name
+        let meId = null;
+        for (const [id,m] of Object.entries(data.members||{})){
+          if (String(m.name).trim().toLowerCase() === userName.trim().toLowerCase()){ meId=id; break; }
+        }
+        if (!meId){
+          meId = uuid();
+          await db.ref(`trips/${hashCode}/members/${meId}`).set({id:meId, name:userName.trim()});
+        }
+        saveLocalTrip({tripId: hashCode, tripName: data.name||hashCode, me: meId});
+        await openTrip(hashCode, meId);
+        return;
+      } else {
+        saveLocalTrip({tripId: hashCode, tripName: data.name||hashCode, me: local.me});
+        await openTrip(hashCode, local.me);
+        return;
+      }
+    }
+    // not exists, fallthrough
+  }
+
+  if (local && local.tripId){
+    // verify trip still exists
+    const snap = await db.ref('trips/'+local.tripId).get();
+    if (snap.exists()){
+      await openTrip(local.tripId, local.me);
+      return;
+    } else {
+      clearLocalTrip();
+    }
+  }
+  showScreen('screen-trip');
+}
+
+bootstrap();
+</script>
+</body>
+</html>
