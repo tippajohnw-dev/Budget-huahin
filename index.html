@@ -376,18 +376,32 @@
     .bar-track{height:8px;background:var(--surface-2);border-radius:999px;overflow:hidden}
     .bar-fill{height:100%;border-radius:999px;transition:width .4s ease}
 
-    /* LINE share button */
-    .btn-line{
-      background:#06C755;color:#fff;border:0;
-      box-shadow:0 4px 14px rgba(6,199,85,.32)
+    /* Leaderboard */
+    .lb-row{
+      display:flex;align-items:center;gap:10px;padding:12px 4px;
+      border-bottom:1px dashed var(--border);cursor:pointer;
+      border-radius:12px;transition:background .15s
     }
-    .btn-line:hover{background:#05A648;transform:translateY(-2px)}
+    .lb-row:last-child{border-bottom:0}
+    .lb-row:hover{background:var(--line-tint)}
+    .lb-rank{width:28px;text-align:center;font-weight:800;font-size:15px;flex-shrink:0}
+    .lb-rank.gold{color:#F5A623}
+    .lb-rank.silver{color:#9B9B9B}
+    .lb-rank.bronze{color:#C87533}
+    .lb-detail{display:none;padding:10px 0 4px 38px}
+    .lb-detail.open{display:block}
+    .lb-exp-row{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-2);padding:3px 0;border-bottom:1px dotted var(--border)}
+    .lb-exp-row:last-child{border-bottom:0}
+
+    /* Mode toggle */
+    #mode-create-btn.inactive{background:var(--surface);color:var(--ink);border-color:var(--border);box-shadow:none}
+    #mode-join-btn.active{background:linear-gradient(135deg,#06C755,#04A847);color:#fff;border-color:var(--line);box-shadow:0 4px 14px rgba(6,199,85,.32)}
   </style>
 </head>
 <body>
 
-<!-- ============ Welcome Screen 1: Firebase Setup ============ -->
-<div id="screen-fb-setup" class="welcome hidden">
+<!-- Firebase Setup screen ซ่อนไว้ — config ฝังในโค้ดแล้ว -->
+<div id="screen-fb-setup" class="welcome hidden" style="display:none!important">
   <h1>หารกันเอง</h1>
   <div class="sub">แอปคำนวณค่าใช้จ่ายร่วม สำหรับครอบครัวและกลุ่มเพื่อน</div>
   <div class="card" style="max-width:380px">
@@ -415,36 +429,74 @@
 
 <!-- ============ Welcome Screen 2: Choose / Create Trip ============ -->
 <div id="screen-trip" class="welcome hidden">
-  <h1>เริ่มต้น Trip ของคุณ</h1>
-  <div class="sub">สร้าง Trip ใหม่ หรือเข้าร่วม Trip ที่มีอยู่ด้วยรหัส</div>
 
-  <div class="card" style="max-width:380px;margin-bottom:14px">
-    <h3>สร้าง Trip ใหม่</h3>
-    <div class="field">
-      <label>ชื่อ Trip</label>
-      <input id="new-trip-name" placeholder="เช่น เที่ยวหัวหิน พ.ค. 68" />
-    </div>
-    <div class="field">
-      <label>ชื่อของคุณ</label>
-      <input id="new-trip-user" placeholder="ใส่ชื่อเล่นก็ได้" />
-    </div>
-    <button class="btn primary full" id="create-trip">สร้าง Trip</button>
+  <!-- Mascot + Title -->
+  <div style="position:relative;margin-bottom:4px">
+    <img src="./icons/icon-512.png" onerror="this.style.display='none'" style="width:90px;height:90px;border-radius:24px;box-shadow:0 8px 24px rgba(6,199,85,.25);animation:bob 2.6s ease-in-out infinite" alt="หารกันเอง" />
+  </div>
+  <h1 style="margin-bottom:4px">หารกันเอง</h1>
+  <div class="sub">แอปหารค่าใช้จ่ายสำหรับก๊วนเที่ยว<br>ง่าย เร็ว ไม่ต้องมีแอคเคาท์</div>
+
+  <!-- Mode selector — เข้าร่วมก่อน -->
+  <div style="display:flex;gap:10px;max-width:380px;width:100%;margin-bottom:18px">
+    <button id="mode-join-btn" onclick="setTripMode('join')" style="flex:1;padding:14px 10px;border-radius:16px;border:2.5px solid var(--line);background:linear-gradient(135deg,#06C755,#04A847);color:#fff;font-weight:700;font-size:15px;font-family:inherit;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(6,199,85,.32)">
+      🔗 เข้าร่วม Trip
+    </button>
+    <button id="mode-create-btn" onclick="setTripMode('create')" style="flex:1;padding:14px 10px;border-radius:16px;border:2.5px solid var(--border);background:var(--surface);color:var(--ink);font-weight:700;font-size:15px;font-family:inherit;cursor:pointer;transition:all .2s">
+      ✨ สร้างใหม่
+    </button>
   </div>
 
-  <div class="card" style="max-width:380px">
-    <h3>เข้าร่วม Trip ที่มีอยู่</h3>
-    <div class="field">
-      <label>รหัส Trip (6 ตัวอักษร)</label>
-      <input id="join-trip-code" placeholder="เช่น HUAHIN" maxlength="20" style="text-transform:uppercase" />
+  <!-- JOIN PANEL — แสดงก่อน -->
+  <div id="panel-join" class="card" style="max-width:380px;width:100%">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <span style="font-size:28px">🤝</span>
+      <div>
+        <div style="font-weight:700;font-size:16px">เข้าร่วม Trip ที่มีอยู่</div>
+        <div style="font-size:12px;color:var(--ink-3)">เลือก Trip จากรายการ หรือพิมพ์รหัส</div>
+      </div>
     </div>
+
     <div class="field">
-      <label>ชื่อของคุณ</label>
-      <input id="join-trip-user" placeholder="ใส่ชื่อเล่นก็ได้" />
+      <label>🏝️ เลือก Trip</label>
+      <select id="trip-list-select" style="font-size:15px">
+        <option value="">⏳ กำลังโหลดรายการ Trip...</option>
+      </select>
+      <div class="hint" id="trip-select-hint">ดึงข้อมูลจาก Firebase...</div>
     </div>
-    <button class="btn ghost full" id="join-trip">เข้าร่วม</button>
+
+    <div class="field">
+      <label>😊 ชื่อของคุณ</label>
+      <input id="join-trip-user" placeholder="ใส่ชื่อเล่นก็ได้" style="font-size:16px" />
+    </div>
+    <button class="btn primary full" id="join-trip" style="padding:15px;font-size:16px;border-radius:14px">
+      🔗 เข้าร่วม Trip
+    </button>
   </div>
 
-  <div style="margin-top:18px;font-size:12px;color:var(--ink-3)">
+  <!-- CREATE PANEL — ซ่อนไว้ก่อน -->
+  <div id="panel-create" class="card hidden" style="max-width:380px;width:100%">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <span style="font-size:28px">🗺️</span>
+      <div>
+        <div style="font-weight:700;font-size:16px">สร้าง Trip ใหม่</div>
+        <div style="font-size:12px;color:var(--ink-3)">ระบบจะสร้างรหัสให้อัตโนมัติ</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>🏝️ ชื่อ Trip</label>
+      <input id="new-trip-name" placeholder="เช่น เที่ยวหัวหิน พ.ค. 68" style="font-size:16px" />
+    </div>
+    <div class="field">
+      <label>😊 ชื่อของคุณ</label>
+      <input id="new-trip-user" placeholder="ใส่ชื่อเล่นก็ได้" style="font-size:16px" />
+    </div>
+    <button class="btn primary full" id="create-trip" style="padding:15px;font-size:16px;border-radius:14px">
+      ✨ สร้าง Trip เลย!
+    </button>
+  </div>
+
+  <div style="margin-top:16px;font-size:12px;color:var(--ink-3)">
     <a href="#" id="reset-fb">ตั้งค่า Firebase ใหม่</a>
   </div>
 </div>
@@ -505,7 +557,7 @@
       </div>
 
       <div class="card">
-        <h3>ภาพรวมแต่ละคน</h3>
+        <h3>🏆 Leaderboard ค่าใช้จ่าย</h3>
         <div id="all-members-summary">
           <div class="empty"><div class="txt">เพิ่มสมาชิกเพื่อเริ่ม</div></div>
         </div>
@@ -956,9 +1008,9 @@ $('#create-trip').addEventListener('click', async ()=>{
 
 $('#join-trip').addEventListener('click', async ()=>{
   if (!canWrite('join_trip', 10, 60*1000)) return toast('เข้าร่วมถี่เกินไป ลองใหม่อีกครั้ง');
-  const code = sanitizeText($('#join-trip-code').value, 20).toUpperCase();
+  const code = sanitizeText($('#trip-list-select').value, 20).toUpperCase();
   const userName = sanitizeText($('#join-trip-user').value, 40);
-  if (!code) return toast('ใส่รหัส Trip ก่อน');
+  if (!code) return toast('เลือก Trip ก่อนนะ');
   if (!userName) return toast('ใส่ชื่อของคุณก่อน');
   const snap = await db.ref('trips/'+code).get();
   if (!snap.exists()) return toast('ไม่พบ Trip นี้');
@@ -987,7 +1039,6 @@ async function openTrip(code, meId){
   state.tripId = code;
   state.me = meId;
   tripRef = db.ref('trips/'+code);
-  // url hash for sharing
   history.replaceState(null,'','#'+code);
   showScreen('screen-main');
   setupTopbar();
@@ -996,6 +1047,7 @@ async function openTrip(code, meId){
     state.tripName = d.name || code;
     state.members = Object.values(d.members || {});
     state.expenses = Object.values(d.expenses || {}).sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b.createdAt||0)-(a.createdAt||0));
+    saveRecentTrip(code, state.tripName);
     renderAll();
     setConn(true);
   }, err=>{
@@ -1395,23 +1447,55 @@ function renderDashboard(){
     }
   }
 
-  // all members summary
+  // all members leaderboard
   const allEl = $('#all-members-summary');
   if (!state.members.length){
     allEl.innerHTML = `<div class="empty"><div class="txt">เพิ่มสมาชิกเพื่อเริ่ม</div></div>`;
   } else {
-    allEl.innerHTML = state.members.map(m=>{
-      const p=paid[m.id]||0, o=owed[m.id]||0; const n=p-o;
+    // Sort by owed (total share) descending = highest spender
+    const sorted = [...state.members].map(m=>({
+      m, p:paid[m.id]||0, o:owed[m.id]||0, n:(paid[m.id]||0)-(owed[m.id]||0)
+    })).sort((a,b)=>b.o-a.o);
+
+    const rankIcon = ['🥇','🥈','🥉'];
+    const rankClass = ['gold','silver','bronze'];
+
+    allEl.innerHTML = sorted.map((item,idx)=>{
+      const {m,p,o,n} = item;
+      const pct = totalAll>0 ? Math.round(o/totalAll*100) : 0;
+      // expenses this member is in
+      const myExps = state.expenses.filter(e=>(e.beneficiaries||[]).includes(m.id));
+      const expRows = myExps.map(e=>{
+        const share = e.splitMode==='custom'&&e.customSplit ? (+e.customSplit[m.id]||0) : (+e.amount||0)/((e.beneficiaries||[]).length||1);
+        const payer = state.members.find(x=>x.id===e.payer);
+        return `<div class="lb-exp-row">
+          <span>${escapeHtml(e.category||'')} ${escapeHtml(e.title||'')}</span>
+          <span class="num">${fmt(share)}</span>
+        </div>`;
+      }).join('');
+
       return `
-        <div class="settle-row">
-          <div class="avatar" style="width:30px;height:30px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px">${initials(m.name)}</div>
-          <div style="flex:1">
-            <div style="font-size:14px">${escapeHtml(m.name)} ${m.id===state.me?'<span class="badge">คุณ</span>':''}</div>
-            <div class="small muted">จ่าย ${fmt(p)} · ส่วนตัว ${fmt(o)}</div>
+        <div class="lb-row" onclick="toggleLbDetail('lb-detail-${m.id}')">
+          <div class="lb-rank ${rankClass[idx]||''}">${rankIcon[idx]||idx+1}</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">${initials(m.name)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:14px">${escapeHtml(m.name)}${m.id===state.me?' <span class="badge">คุณ</span>':''}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+              <div style="flex:1;height:5px;background:var(--surface-2);border-radius:999px;overflow:hidden">
+                <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#06C755,#04A847);border-radius:999px"></div>
+              </div>
+              <span class="small muted">${pct}%</span>
+            </div>
           </div>
-          <div class="num" style="font-weight:600;color:${n>=0?'var(--good)':'var(--bad)'}">
-            ${n>=0?'+':''}${fmt(Math.abs(n)).replace('฿','')}฿
+          <div style="text-align:right;flex-shrink:0">
+            <div class="num" style="font-weight:700;font-size:15px">${fmt(o)}</div>
+            <div class="small" style="color:${n>=0?'var(--good)':'var(--bad)'}">${n>=0?'+':''}${fmt(n).replace('฿','')}฿</div>
           </div>
+          <div style="color:var(--ink-3);font-size:12px;margin-left:4px">▾</div>
+        </div>
+        <div class="lb-detail" id="lb-detail-${m.id}">
+          <div style="font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:4px">รายการของ ${escapeHtml(m.name)}</div>
+          ${expRows || '<div class="small muted">ยังไม่มีรายการ</div>'}
         </div>
       `;
     }).join('');
@@ -1514,30 +1598,95 @@ function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+/* --------------- Leaderboard toggle --------------- */
+window.toggleLbDetail = function(id){
+  const el = $('#'+id);
+  if (!el) return;
+  el.classList.toggle('open');
+};
+
+/* --------------- Trip screen mode toggle --------------- */
+window.setTripMode = function(mode){
+  const createBtn = $('#mode-create-btn');
+  const joinBtn = $('#mode-join-btn');
+  const panelCreate = $('#panel-create');
+  const panelJoin = $('#panel-join');
+  if (mode === 'join'){
+    joinBtn.style.cssText = 'flex:1;padding:14px 10px;border-radius:16px;border:2.5px solid var(--line);background:linear-gradient(135deg,#06C755,#04A847);color:#fff;font-weight:700;font-size:15px;font-family:inherit;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(6,199,85,.32)';
+    createBtn.style.cssText = 'flex:1;padding:14px 10px;border-radius:16px;border:2.5px solid var(--border);background:var(--surface);color:var(--ink);font-weight:700;font-size:15px;font-family:inherit;cursor:pointer;transition:all .2s';
+    panelJoin.classList.remove('hidden');
+    panelCreate.classList.add('hidden');
+  } else {
+    createBtn.style.cssText = 'flex:1;padding:14px 10px;border-radius:16px;border:2.5px solid var(--line);background:linear-gradient(135deg,#06C755,#04A847);color:#fff;font-weight:700;font-size:15px;font-family:inherit;cursor:pointer;transition:all .2s;box-shadow:0 4px 14px rgba(6,199,85,.32)';
+    joinBtn.style.cssText = 'flex:1;padding:14px 10px;border-radius:16px;border:2.5px solid var(--border);background:var(--surface);color:var(--ink);font-weight:700;font-size:15px;font-family:inherit;cursor:pointer;transition:all .2s';
+    panelCreate.classList.remove('hidden');
+    panelJoin.classList.add('hidden');
+  }
+};
+
+/* --------------- Load Trips from Firebase --------------- */
+async function loadTripsFromFirebase(){
+  const sel = $('#trip-list-select');
+  const hint = $('#trip-select-hint');
+  if (!db) return;
+  try {
+    hint.textContent = '⏳ กำลังโหลด...';
+    const snap = await db.ref('trips').get();
+    if (!snap.exists()){
+      sel.innerHTML = '<option value="">ยังไม่มี Trip — ลองสร้างใหม่</option>';
+      hint.textContent = 'ยังไม่มี Trip ในระบบ';
+      return;
+    }
+    const trips = [];
+    snap.forEach(child => {
+      const d = child.val();
+      trips.push({ id: child.key, name: d.name || child.key, createdAt: d.createdAt || 0, memberCount: Object.keys(d.members||{}).length });
+    });
+    // sort newest first
+    trips.sort((a,b) => b.createdAt - a.createdAt);
+    sel.innerHTML = '<option value="">— เลือก Trip —</option>' +
+      trips.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)} · ${t.memberCount} คน (${escapeHtml(t.id)})</option>`).join('');
+    hint.textContent = `พบ ${trips.length} Trip`;
+  } catch(e){
+    sel.innerHTML = '<option value="">โหลดไม่สำเร็จ</option>';
+    hint.textContent = 'โหลดรายการไม่สำเร็จ — เช็ค internet';
+    console.error(e);
+  }
+}
+
+/* --------------- Recent Trips (localStorage fallback) --------------- */
+const LS_RECENT = 'haargun_recent_trips_v1';
+function saveRecentTrip(tripId, tripName){
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(LS_RECENT)||'[]'); } catch {}
+  list = list.filter(t=>t.id!==tripId);
+  list.unshift({id:tripId, name:tripName, ts:Date.now()});
+  list = list.slice(0,8);
+  localStorage.setItem(LS_RECENT, JSON.stringify(list));
+}
+
 /* --------------- Bootstrap --------------- */
 async function bootstrap(){
-  const cfg = loadFbConfig();
-  if (!cfg){
-    showScreen('screen-trip');
-    return;
-  }
+  // Config ฝังไว้แล้ว — ข้าม screen-fb-setup ทั้งหมด
+  const cfg = DEFAULT_FIREBASE_CONFIG;
+  saveFbConfig(cfg);
   try {
     await waitForFirebase(15000);
     initFirebase(cfg);
   } catch(e){
     console.error(e);
-    showScreen('screen-fb-setup');
-    // pre-fill saved config so user doesn't have to retype
-    try { $('#fb-config-input').value = JSON.stringify(cfg, null, 2); } catch {}
-    const errEl = $('#fb-err');
-    errEl.style.display='block';
-    errEl.textContent = e.message;
+    // แสดง error ใน screen-trip แทน ไม่ต้องให้ user กรอก config
+    showScreen('screen-trip');
+    toast('เชื่อมต่อ Firebase ไม่สำเร็จ — เช็ค internet แล้วลองใหม่');
     return;
   }
 
   // hash-based join
   const hashCode = location.hash.replace(/^#/,'').trim().toUpperCase();
   const local = loadLocalTrip();
+
+  // โหลดรายการ Trip จาก Firebase ทันที (สำหรับ dropdown)
+  loadTripsFromFirebase();
 
   if (hashCode && (!local || local.tripId !== hashCode)){
     // need to join the hash trip
