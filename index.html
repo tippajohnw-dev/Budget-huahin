@@ -13,6 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Mali:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- LIFF SDK — โหลดก่อน Firebase เสมอ -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     :root{
       /* LINE-inspired palette */
@@ -385,6 +387,11 @@
     }
     .btn-line:hover{background:#05A648;transform:translateY(-2px)}
 
+    @keyframes slideUp{
+      from{transform:translateY(100%);opacity:0}
+      to{transform:translateY(0);opacity:1}
+    }
+
     /* Leaderboard */
     .lb-row{
       display:flex;align-items:center;gap:10px;padding:12px 4px;
@@ -479,6 +486,17 @@
         <div style="font-size:12px;color:var(--ink-3)">เลือกจากรายการหรือพิมพ์รหัส</div>
       </div>
     </div>
+
+    <!-- LINE Profile Banner (แสดงเมื่อ login ผ่าน LINE) -->
+    <div id="liff-profile-join" style="display:none;align-items:center;gap:10px;background:var(--line-tint);border:1px solid var(--line-soft);border-radius:12px;padding:10px 14px;margin-bottom:14px">
+      <img id="liff-avatar-join" src="" style="width:38px;height:38px;border-radius:50%;object-fit:cover" />
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;color:var(--ink-3)">เข้าสู่ระบบด้วย LINE</div>
+        <div id="liff-name-join" style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+      </div>
+      <span style="font-size:18px">✅</span>
+    </div>
+
     <div class="field">
       <label>🏝️ เลือก Trip</label>
       <select id="firebase-trips-select" style="font-size:15px;padding:13px 14px">
@@ -491,7 +509,7 @@
       <input id="join-trip-code" placeholder="เช่น HUA5X9" maxlength="20"
         style="text-transform:uppercase;font-size:18px;font-weight:700;letter-spacing:.1em" />
     </div>
-    <div class="field">
+    <div class="field" id="join-name-field">
       <label>😊 ชื่อของคุณ</label>
       <input id="join-trip-user" placeholder="ใส่ชื่อเล่นก็ได้" style="font-size:16px" />
     </div>
@@ -509,11 +527,22 @@
         <div style="font-size:12px;color:var(--ink-3)">ระบบสร้างรหัสให้อัตโนมัติ</div>
       </div>
     </div>
+
+    <!-- LINE Profile Banner (แสดงเมื่อ login ผ่าน LINE) -->
+    <div id="liff-profile-create" style="display:none;align-items:center;gap:10px;background:var(--line-tint);border:1px solid var(--line-soft);border-radius:12px;padding:10px 14px;margin-bottom:14px">
+      <img id="liff-avatar-create" src="" style="width:38px;height:38px;border-radius:50%;object-fit:cover" />
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;color:var(--ink-3)">เข้าสู่ระบบด้วย LINE</div>
+        <div id="liff-name-create" style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+      </div>
+      <span style="font-size:18px">✅</span>
+    </div>
+
     <div class="field">
       <label>🏝️ ชื่อ Trip</label>
       <input id="new-trip-name" placeholder="เช่น เที่ยวหัวหิน พ.ค. 68" style="font-size:16px" />
     </div>
-    <div class="field">
+    <div class="field" id="create-name-field">
       <label>😊 ชื่อของคุณ</label>
       <input id="new-trip-user" placeholder="ใส่ชื่อเล่นก็ได้" style="font-size:16px" />
     </div>
@@ -540,6 +569,10 @@
         <button class="icon-btn" id="open-share" title="แชร์ Trip">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         </button>
+        <!-- LINE Profile Avatar — แสดงเมื่อ login ผ่าน LINE -->
+        <div id="topbar-profile" style="display:none;align-items:center;gap:6px;cursor:pointer" onclick="showMyProfile()" title="โปรไฟล์ของคุณ">
+          <img id="topbar-avatar" src="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid var(--line)" />
+        </div>
         <button class="icon-btn" id="open-settings" title="ตั้งค่า">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
@@ -804,7 +837,7 @@
 <!-- Firebase v10 compat with CDN fallback -->
 <script>
 (function(){
-  // Attempt to load Firebase from primary CDN; fallback to jsdelivr if blocked
+  // Attempt to load Firebase from primary CDN; fallback to jsdelivr/unpkg if blocked
   function loadScript(src){
     return new Promise((resolve, reject)=>{
       const s = document.createElement('script');
@@ -815,10 +848,15 @@
     });
   }
   const cdns = [
+    // CDN 1: gstatic (official)
     ['https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js',
      'https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js'],
-    ['https://cdn.jsdelivr.net/npm/firebase@10.12.5/compat/app/dist/index.cjs.js',
-     'https://cdn.jsdelivr.net/npm/firebase@10.12.5/compat/database/dist/index.cjs.js'],
+    // CDN 2: jsdelivr
+    ['https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-app-compat.js',
+     'https://cdn.jsdelivr.net/npm/firebase@10.12.5/firebase-database-compat.js'],
+    // CDN 3: unpkg
+    ['https://unpkg.com/firebase@10.12.5/firebase-app-compat.js',
+     'https://unpkg.com/firebase@10.12.5/firebase-database-compat.js'],
   ];
   async function tryLoad(){
     let lastErr;
@@ -849,6 +887,58 @@ const LS = {
   fb: 'haargun_fb_config_v1',
   trip: 'haargun_trip_v1',     // {tripId, tripName, me}
 };
+
+/* --------------- LIFF Config --------------- */
+// ใส่ LIFF ID ที่ได้จาก LINE Developers Console
+// developers.line.biz → เลือก Channel → LIFF tab → Copy LIFF ID
+const LIFF_ID = '2009992040-aXIvOY23';
+
+/* --------------- LIFF State --------------- */
+let liffProfile = null;   // {userId, displayName, pictureUrl} หรือ null ถ้าไม่ได้เปิดใน LINE
+let liffReady = false;
+
+/* --------------- LIFF Helpers --------------- */
+async function initLiff(){
+  // ถ้า LIFF SDK ไม่ได้โหลด (browser ปกติ / CDN ถูกบล็อก) → ข้ามได้เลย
+  if (typeof liff === 'undefined'){
+    console.warn('[LIFF] SDK not loaded — running in browser mode');
+    liffReady = false;
+    return;
+  }
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    liffReady = true;
+    if (liff.isLoggedIn()){
+      liffProfile = await liff.getProfile();
+      console.log('[LIFF] logged in as', liffProfile.displayName);
+    } else if (liff.isInClient()){
+      // อยู่ใน LINE browser แต่ยังไม่ login — ให้ login
+      liff.login();
+    }
+    // ถ้าไม่ได้อยู่ใน LINE browser → liffProfile ยังเป็น null → fallback ปกติ
+  } catch(e){
+    console.warn('[LIFF] init failed, running in browser mode:', e.message);
+    liffReady = false;
+  }
+}
+
+// ดึงชื่อจาก LINE profile (ถ้ามี)
+function getLiffName(){ return liffProfile?.displayName || ''; }
+
+// ดึง LINE userId เพื่อใช้เป็น member ID ที่ unique ข้ามอุปกรณ์
+// format: "line_XXXXXXXX" เพื่อแยกจาก uuid เดิม
+function getLiffMemberId(){
+  if (!liffProfile?.userId) return null;
+  return 'line_' + liffProfile.userId.slice(0, 16);
+}
+
+// แสดง avatar รูปโปรไฟล์ LINE หรือ initials fallback
+function memberAvatar(m, size=32){
+  if (m.pictureUrl){
+    return `<img src="${escapeHtml(m.pictureUrl)}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.outerHTML='<div style=width:${size}px;height:${size}px;border-radius:50%;background:var(--line-soft);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:${Math.round(size*.36)}px>${initials(m.name)}</div>'" />`;
+  }
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:var(--line-soft);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:${Math.round(size*.36)}px;color:var(--line-dark);flex-shrink:0">${initials(m.name)}</div>`;
+}
 
 let app = null;       // firebase app
 let db = null;        // realtime db ref
@@ -1023,14 +1113,24 @@ function makeTripCode(name){
 $('#create-trip').addEventListener('click', async ()=>{
   if (!canWrite('create_trip', 3, 10*60*1000)) return toast('สร้าง Trip ถี่เกินไป ลองใหม่อีกครั้ง');
   const name = sanitizeText($('#new-trip-name').value, 60);
-  const userName = sanitizeText($('#new-trip-user').value, 40);
   if (!name) return toast('ใส่ชื่อ Trip ก่อน');
+
+  // ใช้ชื่อจาก LINE profile ถ้ามี หรือจาก input
+  const lineId = getLiffMemberId();
+  const lineName = getLiffName();
+  const inputName = sanitizeText($('#new-trip-user').value, 40);
+  const userName = lineName || inputName;
   if (!userName) return toast('ใส่ชื่อของคุณก่อน');
+
   const code = makeTripCode(name);
-  const meId = uuid();
+  // ถ้ามี LINE userId ใช้เป็น member ID เพื่อ uniqueness ข้ามอุปกรณ์
+  const meId = lineId || uuid();
+  const memberData = { id: meId, name: userName };
+  if (liffProfile?.pictureUrl) memberData.pictureUrl = liffProfile.pictureUrl;
+
   const init = {
     name, createdAt: Date.now(),
-    members: { [meId]: { id: meId, name: userName } },
+    members: { [meId]: memberData },
     expenses: {}
   };
   await db.ref('trips/'+code).set(init);
@@ -1041,22 +1141,39 @@ $('#create-trip').addEventListener('click', async ()=>{
 $('#join-trip').addEventListener('click', async ()=>{
   if (!canWrite('join_trip', 10, 60*1000)) return toast('เข้าร่วมถี่เกินไป ลองใหม่อีกครั้ง');
   const code = sanitizeText($('#join-trip-code').value, 20).toUpperCase();
-  const userName = sanitizeText($('#join-trip-user').value, 40);
   if (!code) return toast('ใส่รหัส Trip ก่อน');
+
+  // ใช้ชื่อจาก LINE profile ถ้ามี หรือจาก input
+  const lineId = getLiffMemberId();
+  const lineName = getLiffName();
+  const inputName = sanitizeText($('#join-trip-user').value, 40);
+  const userName = lineName || inputName;
   if (!userName) return toast('ใส่ชื่อของคุณก่อน');
+
   const snap = await db.ref('trips/'+code).get();
   if (!snap.exists()) return toast('ไม่พบ Trip นี้');
   const data = snap.val();
-  // try find existing member by name
+
+  // ถ้ามี LINE userId ค้นหาก่อน ไม่งั้นค้นหาด้วยชื่อ
   let meId = null;
-  if (data.members){
+  if (lineId && data.members?.[lineId]){
+    meId = lineId;  // เคยเข้า Trip นี้ด้วย LINE แล้ว
+  } else if (data.members){
     for (const [id,m] of Object.entries(data.members)){
-      if (String(m.name).trim().toLowerCase() === userName.toLowerCase()){ meId = id; break; }
+      if (lineId && m.id === lineId){ meId = id; break; }
+      if (!lineId && String(m.name).trim().toLowerCase() === userName.toLowerCase()){ meId = id; break; }
     }
   }
   if (!meId){
-    meId = uuid();
-    await db.ref(`trips/${code}/members/${meId}`).set({id: meId, name: userName});
+    meId = lineId || uuid();
+    const memberData = { id: meId, name: userName };
+    if (liffProfile?.pictureUrl) memberData.pictureUrl = liffProfile.pictureUrl;
+    await db.ref(`trips/${code}/members/${meId}`).set(memberData);
+  } else {
+    // อัพเดท pictureUrl ถ้ามี LINE profile ใหม่กว่า
+    if (liffProfile?.pictureUrl){
+      await db.ref(`trips/${code}/members/${meId}/pictureUrl`).set(liffProfile.pictureUrl);
+    }
   }
   saveLocalTrip({ tripId: code, tripName: data.name || code, me: meId });
   await openTrip(code, meId);
@@ -1071,10 +1188,61 @@ async function openTrip(code, meId){
   state.tripId = code;
   state.me = meId;
   tripRef = db.ref('trips/'+code);
-  // url hash for sharing
   history.replaceState(null,'','#'+code);
   showScreen('screen-main');
   setupTopbar();
+
+  // ── LIFF Profile Sync ──────────────────────────────────────────────
+  // ทำ background โดยไม่ block UI
+  if (liffProfile){
+    try {
+      const memberSnap = await tripRef.child('members/'+meId).get();
+      const m = memberSnap.val();
+      if (m){
+        const updates = {};
+        // อัพเดท pictureUrl ถ้าไม่มีหรือเปลี่ยนไป
+        if (liffProfile.pictureUrl && m.pictureUrl !== liffProfile.pictureUrl){
+          updates['pictureUrl'] = liffProfile.pictureUrl;
+        }
+        // บันทึก lineUserId ไว้เพื่อ cross-device recognition
+        if (!m.lineUserId && liffProfile.userId){
+          updates['lineUserId'] = liffProfile.userId;
+        }
+        if (Object.keys(updates).length > 0){
+          await tripRef.child('members/'+meId).update(updates);
+          console.log('[LIFF] synced profile for', m.name, updates);
+        }
+      } else {
+        // member ไม่มีใน Firebase (เช่น user เก่าที่ชื่อไม่ตรง)
+        // พยายาม auto-link โดยจับคู่ lineUserId หรือชื่อ
+        const membersSnap = await tripRef.child('members').get();
+        if (membersSnap.exists()){
+          let matched = null;
+          membersSnap.forEach(child => {
+            const d = child.val();
+            // จับคู่ด้วย lineUserId ก่อน (แม่นยำสุด)
+            if (d.lineUserId && d.lineUserId === liffProfile.userId) matched = { id: child.key, ...d };
+            // fallback: จับคู่ด้วยชื่อ (case-insensitive)
+            else if (!matched && d.name && d.name.trim().toLowerCase() === liffProfile.displayName.trim().toLowerCase()) matched = { id: child.key, ...d };
+          });
+          if (matched){
+            // พบ member เดิม → update local + Firebase
+            state.me = matched.id;
+            saveLocalTrip({ tripId: code, tripName: state.tripName, me: matched.id });
+            await tripRef.child('members/'+matched.id).update({
+              lineUserId: liffProfile.userId,
+              pictureUrl: liffProfile.pictureUrl || matched.pictureUrl || ''
+            });
+            console.log('[LIFF] auto-linked to existing member:', matched.name);
+          }
+        }
+      }
+    } catch(e){
+      console.warn('[LIFF] profile sync failed:', e.message);
+    }
+  }
+  // ──────────────────────────────────────────────────────────────────
+
   tripRef.on('value', snap=>{
     const d = snap.val() || {};
     state.tripName = d.name || code;
@@ -1099,6 +1267,18 @@ function setConn(ok){
 function setupTopbar(){
   topbarEl = $('#topbar');
   $('#trip-chip').textContent = state.tripName + ' · ' + state.tripId;
+
+  // แสดง LINE avatar ถ้ามี profile
+  if (liffProfile?.pictureUrl){
+    const profileBtn = $('#topbar-profile');
+    const avatar = $('#topbar-avatar');
+    if (profileBtn && avatar){
+      avatar.src = liffProfile.pictureUrl;
+      avatar.onerror = () => { profileBtn.style.display = 'none'; };
+      profileBtn.style.display = 'flex';
+    }
+  }
+
   // tabs
   $$('.tab').forEach(t=>{
     t.onclick = ()=>{
@@ -1113,6 +1293,44 @@ function setupTopbar(){
     topbarEl.classList.toggle('scrolled', window.scrollY > 4);
   });
 }
+
+/* --------------- My Profile Modal --------------- */
+window.showMyProfile = function(){
+  if (!liffProfile) return;
+  const me = state.members.find(m => m.id === state.me);
+  const name = me?.name || liffProfile.displayName;
+  const pic = liffProfile.pictureUrl || '';
+
+  // ลบ modal เก่าถ้ามี
+  const old = $('#profile-modal');
+  if (old) old.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'profile-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:#0007;z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:24px 20px 36px;animation:slideUp .25s ease">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+        <img src="${escapeHtml(pic)}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid var(--line)" onerror="this.style.display='none'" />
+        <div>
+          <div style="font-weight:700;font-size:17px">${escapeHtml(name)}</div>
+          <div style="font-size:12px;color:var(--ink-3);margin-top:2px">เข้าสู่ระบบด้วย LINE ✅</div>
+        </div>
+      </div>
+      <div style="background:var(--line-tint);border-radius:12px;padding:12px 14px;margin-bottom:16px">
+        <div style="font-size:12px;color:var(--ink-2);margin-bottom:4px">Trip ปัจจุบัน</div>
+        <div style="font-weight:700">${escapeHtml(state.tripName)}</div>
+        <div style="font-size:12px;color:var(--ink-3);margin-top:2px">รหัส: ${escapeHtml(state.tripId)}</div>
+      </div>
+      <button onclick="document.getElementById('profile-modal').remove()"
+        style="width:100%;padding:13px;border-radius:12px;background:var(--surface-2);border:none;font-weight:700;font-size:14px;cursor:pointer;color:var(--ink-2)">
+        ปิด
+      </button>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+};
+
 
 /* --------------- Renderers --------------- */
 function renderAll(){
@@ -1691,59 +1909,95 @@ async function loadFirebaseTrips(){
   }
 }
 
+/* --------------- Apply LIFF profile to screen-trip UI --------------- */
+function applyLiffProfileToUI(){
+  if (!liffProfile) return;
+  const { displayName, pictureUrl } = liffProfile;
+
+  // Join panel
+  const profileJoin = $('#liff-profile-join');
+  if (profileJoin){
+    profileJoin.style.display = 'flex';
+    $('#liff-avatar-join').src = pictureUrl || '';
+    $('#liff-name-join').textContent = displayName;
+    // ซ่อนช่องชื่อ เพราะดึงจาก LINE แล้ว
+    const nameField = $('#join-name-field');
+    if (nameField) nameField.style.display = 'none';
+  }
+
+  // Create panel
+  const profileCreate = $('#liff-profile-create');
+  if (profileCreate){
+    profileCreate.style.display = 'flex';
+    $('#liff-avatar-create').src = pictureUrl || '';
+    $('#liff-name-create').textContent = displayName;
+    const nameField = $('#create-name-field');
+    if (nameField) nameField.style.display = 'none';
+  }
+}
+
 /* --------------- Bootstrap --------------- */
 async function bootstrap(){
-  // Config ฝังไว้แล้ว — ข้าม screen-fb-setup ทั้งหมด
-  const cfg = DEFAULT_FIREBASE_CONFIG;
-  saveFbConfig(cfg);
-  try {
-    await waitForFirebase(15000);
-    initFirebase(cfg);
-  } catch(e){
-    console.error(e);
+  // 1. Init LIFF ก่อน (parallel กับ Firebase เพื่อความเร็ว)
+  const [, fbResult] = await Promise.allSettled([
+    initLiff(),
+    (async ()=>{
+      const cfg = DEFAULT_FIREBASE_CONFIG;
+      saveFbConfig(cfg);
+      await waitForFirebase(15000);
+      initFirebase(cfg);
+    })()
+  ]);
+
+  if (fbResult.status === 'rejected'){
     showScreen('screen-trip');
+    applyLiffProfileToUI();
     toast('เชื่อมต่อ Firebase ไม่สำเร็จ — เช็ค internet แล้วลองใหม่');
     return;
   }
 
-  // hash-based join
+  // 2. hash-based join
   const hashCode = location.hash.replace(/^#/,'').trim().toUpperCase();
   const local = loadLocalTrip();
+  const lineId = getLiffMemberId();
 
   if (hashCode && (!local || local.tripId !== hashCode)){
-    // need to join the hash trip
     const snap = await db.ref('trips/'+hashCode).get();
     if (snap.exists()){
-      // reuse user name from local if exists; otherwise prompt
-      let userName = local?.tripId === hashCode ? null : null;
       const data = snap.val();
-      const existingMember = local && data.members?.[local.me] ? data.members[local.me] : null;
-      if (!existingMember){
-        userName = prompt(`เข้าร่วม Trip "${data.name||hashCode}" — ใส่ชื่อของคุณ:`);
-        if (!userName) { showScreen('screen-trip'); return; }
-        // try existing member with same name
-        let meId = null;
-        for (const [id,m] of Object.entries(data.members||{})){
-          if (String(m.name).trim().toLowerCase() === userName.trim().toLowerCase()){ meId=id; break; }
+      // ถ้ามี LINE userId ตรวจสอบว่าเป็น member แล้วหรือยัง
+      let meId = lineId && data.members?.[lineId] ? lineId : null;
+      // ถ้าไม่มี → ตรวจสอบจาก local
+      if (!meId && local && data.members?.[local.me]) meId = local.me;
+
+      if (!meId){
+        // ต้องสมัครใหม่
+        const lineName = getLiffName();
+        let userName = lineName;
+        if (!userName){
+          userName = prompt(`เข้าร่วม Trip "${data.name||hashCode}" — ใส่ชื่อของคุณ:`);
+          if (!userName){ showScreen('screen-trip'); applyLiffProfileToUI(); loadFirebaseTrips(); return; }
+        }
+        // ค้นหาชื่อซ้ำ (ถ้าไม่มี LINE ID)
+        if (!lineId && data.members){
+          for (const [id,m] of Object.entries(data.members)){
+            if (String(m.name).trim().toLowerCase() === userName.trim().toLowerCase()){ meId=id; break; }
+          }
         }
         if (!meId){
-          meId = uuid();
-          await db.ref(`trips/${hashCode}/members/${meId}`).set({id:meId, name:userName.trim()});
+          meId = lineId || uuid();
+          const memberData = { id: meId, name: userName.trim() };
+          if (liffProfile?.pictureUrl) memberData.pictureUrl = liffProfile.pictureUrl;
+          await db.ref(`trips/${hashCode}/members/${meId}`).set(memberData);
         }
-        saveLocalTrip({tripId: hashCode, tripName: data.name||hashCode, me: meId});
-        await openTrip(hashCode, meId);
-        return;
-      } else {
-        saveLocalTrip({tripId: hashCode, tripName: data.name||hashCode, me: local.me});
-        await openTrip(hashCode, local.me);
-        return;
       }
+      saveLocalTrip({tripId: hashCode, tripName: data.name||hashCode, me: meId});
+      await openTrip(hashCode, meId);
+      return;
     }
-    // not exists, fallthrough
   }
 
   if (local && local.tripId){
-    // verify trip still exists
     const snap = await db.ref('trips/'+local.tripId).get();
     if (snap.exists()){
       await openTrip(local.tripId, local.me);
@@ -1753,15 +2007,29 @@ async function bootstrap(){
     }
   }
   showScreen('screen-trip');
+  applyLiffProfileToUI();
   loadFirebaseTrips();
 }
 
 bootstrap();
 
+// Service Worker — ลงทะเบียนเฉพาะบน GitHub Pages / production เท่านั้น
+// ไม่รัน SW ใน localhost, Claude artifact preview หรือ environment ที่ไม่ใช่ HTTPS จริง
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Service worker registration failed', err));
-  });
+  const hostname = location.hostname;
+  const isProduction = hostname.endsWith('github.io') ||
+                       (hostname !== 'localhost' &&
+                        hostname !== '127.0.0.1' &&
+                        !hostname.endsWith('claudeusercontent.com'));
+  if (isProduction){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log('[SW] registered'))
+        .catch(err => console.warn('[SW] registration failed:', err.message));
+    });
+  } else {
+    console.log('[SW] skipped — not in production environment');
+  }
 }
 </script>
 </body>
