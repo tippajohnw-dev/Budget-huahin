@@ -1,36 +1,54 @@
-const CACHE_NAME = 'haargun-v2';
-const APP_SHELL = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+const CACHE = 'capybarabu-v1.3.5';
+const SHELL = ['./index.html', './manifest.json', './capybarabu%20inc.png', './Icon%20Emotional.png'];
+
+const SKIP_HOSTS = [
+  'firebasedatabase.app',
+  'firebaseio.com',
+  'googleapis.com',
+  'gstatic.com',
+  'line-scdn.net',
+  'liff.line.me',
+  'accounts.line-apps.com',
+  'access.line.me',
+  'obs.line-apps.com',
+  'cdn.jsdelivr.net',
+  'unpkg.com',
 ];
 
-self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null)))
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(SHELL))
+      .then(() => self.skipWaiting())
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', event => {
-  const req = event.request;
-  if (req.method !== 'GET') return;
-  const url = new URL(req.url);
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
-  event.respondWith(
-    caches.match(req).then(cached => cached || fetch(req).then(resp => {
-      const copy = resp.clone();
-      if (resp.ok && (url.origin === location.origin || url.hostname.includes('gstatic.com') || url.hostname.includes('googleapis.com') || url.hostname.includes('jsdelivr.net'))) {
-        caches.open(CACHE_NAME).then(cache => cache.put(req, copy)).catch(()=>{});
-      }
-      return resp;
-    }).catch(() => caches.match('./index.html')))
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  if (SKIP_HOSTS.some(h => url.hostname.endsWith(h))) return;
+
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      return fetch(e.request).then(res => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => {
+        if (e.request.mode === 'navigate') return caches.match('./index.html');
+        return new Response('', { status: 503 });
+      });
+    })
   );
 });
