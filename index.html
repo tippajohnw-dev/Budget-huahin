@@ -631,7 +631,7 @@ window.handleLogout = async function(){
 };
 
 function waitFb(ms){return new Promise((r,j)=>{if(window.__fbReady)return r();if(window.__fbError)return j(window.__fbError);const t=setTimeout(()=>j(new Error('timeout')),ms);window.addEventListener('fb-ready',()=>{clearTimeout(t);r()},{once:true});window.addEventListener('fb-failed',()=>{clearTimeout(t);j(window.__fbError)},{once:true});});}
-function initFb(){if(!firebase.apps.length)firebase.initializeApp(FB_CFG);db=firebase.database();}
+function initFb(){if(!firebase.apps.length)firebase.initializeApp(FB_CFG);}
 async function signInFbAnon(){
   return new Promise(resolve=>{
     const unsub=firebase.auth().onAuthStateChanged(async user=>{
@@ -1169,7 +1169,7 @@ async function boot(){
 
   const [liffOk, fbResult] = await Promise.allSettled([
     initLiff(),
-    (async()=>{ await waitFb(10000); initFb(); await signInFbAnon(); initConnMonitor(); perfMark('firebase_ready'); })()
+    (async()=>{ await waitFb(10000); initFb(); await signInFbAnon(); db=firebase.database(); initConnMonitor(); perfMark('firebase_ready'); })()
   ]);
 
   if(fbResult.status === 'rejected'){
